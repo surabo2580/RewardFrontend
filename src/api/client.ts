@@ -210,6 +210,90 @@ class SpringBootApiClient {
     }
     return this.request(`/transactions/${encodeURIComponent(businessId)}`);
   }
+
+  // --- Enhanced API methods for scalable queries ---
+
+  /**
+   * Fetch rules with fallback to local storage/defaults if backend unavailable
+   */
+  async fetchRules(businessId: string): Promise<any[]> {
+    try {
+      return await this.getRules(businessId);
+    } catch (err) {
+      console.warn('Failed to fetch rules from backend, using local fallback', err);
+      // Return empty array - will be populated from local state
+      return [];
+    }
+  }
+
+  /**
+   * Fetch wallet data
+   */
+  async fetchWallet(userId: string, businessId: string): Promise<BackendWalletResponse> {
+    return this.getWallet(businessId, userId);
+  }
+
+  /**
+   * Fetch transactions
+   */
+  async fetchTransactions(userId: string, businessId: string): Promise<any[]> {
+    try {
+      return await this.getTransactions(businessId, userId);
+    } catch (err) {
+      console.warn('Failed to fetch transactions', err);
+      return [];
+    }
+  }
+
+  /**
+   * Process event through backend
+   */
+  async processEvent(event: BackendEventRequest): Promise<BackendEventResponse> {
+    return this.postEvent(event);
+  }
+
+  /**
+   * Confirm points
+   */
+  async confirmPoints(businessId: string, userId: string, points: number): Promise<any> {
+    return this.confirmPending({ businessId, userId, points });
+  }
+
+  /**
+   * Redeem points (wrapper for new architecture)
+   */
+  async redeemPointsNew(payload: { businessId: string; userId: string; points: number }): Promise<BackendWalletResponse> {
+    return this.redeemPoints({ ...payload, reason: 'User redemption' });
+  }
+
+  /**
+   * Create rule (new wrapper)
+   */
+  async createNewRule(rule: any): Promise<any> {
+    return this.createRule(rule);
+  }
+
+  /**
+   * Update rule
+   */
+  async updateRuleById(id: number, updates: any): Promise<any> {
+    return this.request(`/rules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  /**
+   * Delete rule (new wrapper)
+   */
+  async deleteRuleById(id: number): Promise<void> {
+    return this.deleteRule(String(id));
+  }
 }
 
 export const api = new SpringBootApiClient();
+
+/**
+ * Export singleton instance for direct use
+ */
+export default api;
