@@ -14,7 +14,8 @@ import {
   Globe,
   Server,
   Activity,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 
 export const ApiSandbox: React.FC = () => {
@@ -25,9 +26,9 @@ export const ApiSandbox: React.FC = () => {
     getWallet 
   } = useReward();
 
-  const [activeEndpoint, setActiveEndpoint] = useState<'events' | 'wallet'>('events');
+  const [activeEndpoint, setActiveEndpoint] = useState<'events' | 'wallet' | 'health' | 'tenants'>('events');
   const [copiedCurl, setCopiedCurl] = useState<boolean>(false);
-  const [mode, setMode] = useState<'simulator' | 'live'>('simulator');
+  const [mode, setMode] = useState<'live' | 'simulator'>('live');
   const [backendUrl, setBackendUrl] = useState<string>('http://localhost:8080');
   const [healthStatus, setHealthStatus] = useState<{ checked: boolean; connected: boolean; message: string }>({
     checked: false,
@@ -35,18 +36,15 @@ export const ApiSandbox: React.FC = () => {
     message: '',
   });
 
-  // Events API state
+  // Events API state (New architecture: tenantId, memberId, eventType, amount, referenceId)
   const [eventPayload, setEventPayload] = useState<string>(
     JSON.stringify(
       {
-        businessId: selectedBusinessId || 'taj',
-        userId: selectedUserId || 'user123',
-        event: 'PURCHASE',
-        amount: 150.0,
+        tenantId: selectedBusinessId || 'taj',
+        memberId: selectedUserId || 'user123',
+        eventType: 'PURCHASE',
+        amount: 150,
         referenceId: 'ORD-9842',
-        properties: {
-          amount: 150.0,
-        },
       },
       null,
       2
@@ -74,13 +72,22 @@ export const ApiSandbox: React.FC = () => {
     setHealthStatus({ checked: true, connected: health.connected, message: health.message });
   };
 
-  const curlEvents = `curl -X POST ${backendUrl}/events \\
+  const curlEvents = `curl -i -X POST ${backendUrl}/api/events \\
   -H "Content-Type: application/json" \\
   -d '${eventPayload.replace(/\n\s*/g, ' ')}'`;
 
-  const curlWallet = `curl -X GET ${backendUrl}/wallet/${walletParamBiz}/${walletParamUser}`;
+  const curlWallet = `curl -i -X GET ${backendUrl}/api/wallet-history/${walletParamBiz}/${walletParamUser}`;
+  const curlHealth = `curl -i -X GET ${backendUrl}/api/health`;
+  const curlTenants = `curl -i -X GET ${backendUrl}/api/tenants`;
 
-  const currentCurl = activeEndpoint === 'events' ? curlEvents : curlWallet;
+  const currentCurl =
+    activeEndpoint === 'events'
+      ? curlEvents
+      : activeEndpoint === 'wallet'
+      ? curlWallet
+      : activeEndpoint === 'health'
+      ? curlHealth
+      : curlTenants;
 
   const handleCopyCurl = () => {
     navigator.clipboard.writeText(currentCurl);
@@ -97,7 +104,6 @@ export const ApiSandbox: React.FC = () => {
       try {
         if (activeEndpoint === 'events') {
           const parsed = JSON.parse(eventPayload);
-          // Send the exact body entered by the user
           const result = await api.postEvent(parsed);
           const elapsed = Math.round(performance.now() - start);
 
@@ -107,11 +113,11 @@ export const ApiSandbox: React.FC = () => {
             durationMs: elapsed,
             headers: {
               'content-type': 'application/json',
-              'server': 'Spring Boot 3.3 (Live JVM)',
+              'server': 'Spring Boot 3.3 (Modular Architecture)',
             },
             body: result,
           });
-        } else {
+        } else if (activeEndpoint === 'wallet') {
           const result = await api.getWallet(walletParamBiz, walletParamUser);
           const elapsed = Math.round(performance.now() - start);
 
@@ -121,7 +127,35 @@ export const ApiSandbox: React.FC = () => {
             durationMs: elapsed,
             headers: {
               'content-type': 'application/json',
-              'server': 'Spring Boot 3.3 (Live JVM)',
+              'server': 'Spring Boot 3.3 (Modular Architecture)',
+            },
+            body: result,
+          });
+        } else if (activeEndpoint === 'health') {
+          const result = await api.checkHealth();
+          const elapsed = Math.round(performance.now() - start);
+
+          setApiResponse({
+            status: 200,
+            statusText: 'OK',
+            durationMs: elapsed,
+            headers: {
+              'content-type': 'application/json',
+              'server': 'Spring Boot 3.3 (Health Controller)',
+            },
+            body: result.data || result,
+          });
+        } else {
+          const result = await api.getTenants();
+          const elapsed = Math.round(performance.now() - start);
+
+          setApiResponse({
+            status: 200,
+            statusText: 'OK',
+            durationMs: elapsed,
+            headers: {
+              'content-type': 'application/json',
+              'server': 'Spring Boot 3.3 (Tenant Controller)',
             },
             body: result,
           });
@@ -210,13 +244,14 @@ export const ApiSandbox: React.FC = () => {
               <h2 className="text-xl font-bold text-white tracking-tight">REST API Console & Documentation</h2>
             </div>
             <p className="text-sm text-slate-400 mt-1 max-w-2xl">
-              Specification and interactive testing environment for the Spring Boot Kotlin controllers: 
-              <code className="text-indigo-300 font-mono text-xs bg-slate-800 px-1 rounded ml-1">EventController.kt</code> and 
-              <code className="text-indigo-300 font-mono text-xs bg-slate-800 px-1 rounded ml-1">WalletController.kt</code>.
+              Interactive testing console for the Spring Boot Kotlin modular controllers in <code className="text-indigo-300 font-mono text-xs bg-slate-800 px-1 rounded ml-1">reward-api</code>:
+              <code className="text-indigo-300 font-mono text-xs bg-slate-800 px-1 rounded ml-1">RewardEventController.kt</code>,
+              <code className="text-indigo-300 font-mono text-xs bg-slate-800 px-1 rounded ml-1">WalletHistoryController.kt</code>, and
+              <code className="text-indigo-300 font-mono text-xs bg-slate-800 px-1 rounded ml-1">HealthController.kt</code>.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveEndpoint('events')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
@@ -226,7 +261,7 @@ export const ApiSandbox: React.FC = () => {
               }`}
             >
               <Send className="w-3.5 h-3.5" />
-              <span>POST /events</span>
+              <span>POST /api/events</span>
             </button>
 
             <button
@@ -238,7 +273,31 @@ export const ApiSandbox: React.FC = () => {
               }`}
             >
               <WalletIcon className="w-3.5 h-3.5" />
-              <span>GET /wallet/&#123;biz&#125;/&#123;user&#125;</span>
+              <span>GET /api/wallet-history</span>
+            </button>
+
+            <button
+              onClick={() => setActiveEndpoint('health')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                activeEndpoint === 'health'
+                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>GET /api/health</span>
+            </button>
+
+            <button
+              onClick={() => setActiveEndpoint('tenants')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                activeEndpoint === 'tenants'
+                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>GET /api/tenants</span>
             </button>
           </div>
         </div>

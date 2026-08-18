@@ -75,7 +75,7 @@ export const rulesDB = {
   },
 
   async getActive(): Promise<RewardRule[]> {
-    return db.rules.where('isActive').equals(true).toArray();
+    return db.rules.filter((rule) => !!rule.isActive).toArray();
   },
 
   async getAll(): Promise<RewardRule[]> {

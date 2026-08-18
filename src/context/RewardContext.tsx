@@ -5,7 +5,7 @@
  */
 
 import React, { createContext, useContext } from 'react';
-import { User, Business, RewardRule, Wallet, Transaction, EventRequest, WalletResponse } from '../types';
+import { User, Business, RewardRule, Wallet, Transaction, EventRequest, WalletResponse, EvaluationResult } from '../types';
 import { RuleEngine } from '../engine/RuleEngine';
 import { useRewardStore } from '../store/useRewardStore';
 
@@ -15,6 +15,7 @@ interface ProcessEventResult {
   wallet: Wallet;
   transaction: Transaction;
   message: string;
+  evaluation: EvaluationResult;
 }
 
 interface RewardContextType {
@@ -120,6 +121,7 @@ export const RewardProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         wallet: existingWallet || store.localWallets[store.localWallets.length - 1],
         transaction,
         message: `Processed ${request.event} event successfully`,
+        evaluation,
       };
     },
 
