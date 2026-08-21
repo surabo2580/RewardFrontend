@@ -4,10 +4,11 @@
  * Migrates from Context API to Zustand + TanStack Query
  */
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { User, Business, RewardRule, Wallet, Transaction, EventRequest, WalletResponse, EvaluationResult } from '../types';
 import { RuleEngine } from '../engine/RuleEngine';
 import { useRewardStore } from '../store/useRewardStore';
+import api from '../api/client';
 
 interface ProcessEventResult {
   success: boolean;
@@ -37,8 +38,8 @@ interface RewardContextType {
   updateRule: (id: number, rule: Partial<RewardRule>) => void;
   deleteRule: (id: number) => void;
   toggleRuleActive: (id: number) => void;
-  addBusiness: (business: Omit<Business, 'createdAt'>) => Business;
-  addUser: (user: Omit<User, 'createdAt'>) => User;
+  addBusiness: (business: Omit<Business, 'createdAt'>) => Promise<Business>;
+  addUser: (user: Omit<User, 'createdAt'>) => Promise<User>;
   resetToDefaults: () => void;
 }
 
@@ -50,6 +51,17 @@ const RewardContext = createContext<RewardContextType | undefined>(undefined);
  */
 export const RewardProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const store = useRewardStore();
+  const refreshDirectory = useRewardStore((state) => state.refreshDirectory);
+
+  useEffect(() => {
+    void refreshDirectory();
+
+    const intervalId = window.setInterval(() => {
+      void refreshDirectory();
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [refreshDirectory]);
 
   const contextValue: RewardContextType = {
     // Selection
@@ -228,15 +240,33 @@ export const RewardProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     },
 
-    addBusiness: (business) => ({
-      ...business,
-      createdAt: Date.now(),
-    }),
+    addBusiness: async (business) => {
+      await api.createBusiness(business);
+      await store.refreshDirectory();
 
-    addUser: (user) => ({
-      ...user,
-      createdAt: Date.now(),
-    }),
+      const newBusiness = store.businesses.find((item) => item.id === business.id) || {
+        ...business,
+        createdAt: Date.now(),
+      };
+      store.setSelectedBusinessId(newBusiness.id);
+      return newBusiness;
+    },
+
+    addUser: async (user) => {
+      await api.createUser({
+        id: user.id,
+        name: user.name,
+        tenantId: store.selectedBusinessId,
+      });
+      await store.refreshDirectory();
+
+      const newUser = store.users.find((item) => item.id === user.id) || {
+        ...user,
+        createdAt: Date.now(),
+      };
+      store.setSelectedUserId(newUser.id);
+      return newUser;
+    },
 
     resetToDefaults: () => {
       store.resetToDefaults();

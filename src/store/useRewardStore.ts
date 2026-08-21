@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { SpringBootApiClient } from '../api/client';
 import { User, Business, RewardRule, Wallet, Transaction } from '../types';
+
+const apiClient = new SpringBootApiClient();
 
 interface RewardStoreState {
   // UI State
@@ -12,6 +15,9 @@ interface RewardStoreState {
   // Seed Data (for demo mode or fallback)
   users: User[];
   businesses: Business[];
+  setBusinesses: (businesses: Business[]) => void;
+  setUsers: (users: User[]) => void;
+  refreshDirectory: () => Promise<void>;
   
   // UI State for Pagination/Filtering
   rulesFilter: {
@@ -151,12 +157,50 @@ export const useRewardStore = create<RewardStoreState>()(
   persist(
     (set) => ({
       selectedBusinessId: 'taj',
-      setSelectedBusinessId: (id: string) => set({ selectedBusinessId: id }),
+      setSelectedBusinessId: (id: string) =>
+        set((state) => ({
+          selectedBusinessId: state.businesses.some((b) => b.id === id) ? id : state.businesses[0]?.id || 'taj',
+        })),
       selectedUserId: 'user123',
-      setSelectedUserId: (id: string) => set({ selectedUserId: id }),
+      setSelectedUserId: (id: string) =>
+        set((state) => ({
+          selectedUserId: state.users.some((u) => u.id === id) ? id : state.users[0]?.id || 'user123',
+        })),
 
       users: INITIAL_USERS,
       businesses: INITIAL_BUSINESSES,
+      setBusinesses: (businesses) => set({ businesses }),
+      setUsers: (users) => set({ users }),
+      refreshDirectory: async () => {
+        try {
+          const [backendBusinesses, backendUsers] = await Promise.all([
+            apiClient.getBusinesses(),
+            apiClient.getUsers(),
+          ]);
+
+          const nextBusinesses = backendBusinesses.length > 0 ? backendBusinesses : INITIAL_BUSINESSES;
+          const nextUsers = backendUsers.length > 0 ? backendUsers : INITIAL_USERS;
+
+          set((state) => {
+            const selectedBusinessId = nextBusinesses.some((b) => b.id === state.selectedBusinessId)
+              ? state.selectedBusinessId
+              : nextBusinesses[0]?.id || state.selectedBusinessId || 'taj';
+
+            const selectedUserId = nextUsers.some((u) => u.id === state.selectedUserId)
+              ? state.selectedUserId
+              : nextUsers[0]?.id || state.selectedUserId || 'user123';
+
+            return {
+              businesses: nextBusinesses,
+              users: nextUsers,
+              selectedBusinessId,
+              selectedUserId,
+            };
+          });
+        } catch (error) {
+          console.warn('Failed to refresh directory from backend; keeping demo defaults.', error);
+        }
+      },
 
       rulesFilter: {},
       setRulesFilter: (filter) =>
@@ -203,6 +247,8 @@ export const useRewardStore = create<RewardStoreState>()(
         set({
           selectedBusinessId: 'taj',
           selectedUserId: 'user123',
+          businesses: INITIAL_BUSINESSES,
+          users: INITIAL_USERS,
           localRules: INITIAL_RULES,
           localWallets: [],
           localTransactions: [],

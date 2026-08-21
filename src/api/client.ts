@@ -197,7 +197,7 @@ export class SpringBootApiClient {
     return this.request<any[]>('/api/tenants');
   }
 
-  async createTenant(tenant: { name: string; status?: string }): Promise<any> {
+  async createTenant(tenant: { id: string; name: string; status?: string }): Promise<any> {
     return this.request('/api/tenants', {
       method: 'POST',
       body: JSON.stringify(tenant),
@@ -218,7 +218,15 @@ export class SpringBootApiClient {
   }
 
   async createBusiness(business: { id?: string; name: string; category?: string }): Promise<any> {
-    return this.createTenant({ name: business.name, status: 'ACTIVE' });
+    if (!business.id) {
+      throw new Error('Business ID is required');
+    }
+
+    return this.createTenant({
+      id: business.id,
+      name: business.name,
+      status: 'ACTIVE',
+    });
   }
 
   // --- Members & Users API ---
@@ -251,9 +259,9 @@ export class SpringBootApiClient {
     }
   }
 
-  async createUser(user: { id: string; name: string; email: string }): Promise<any> {
+  async createUser(user: { id: string; name?: string; email?: string; tenantId: string }): Promise<any> {
     return this.createMember({
-      tenantId: 'taj',
+      tenantId: user.tenantId,
       externalUserId: user.id,
       email: user.email,
       tier: 'STANDARD',
