@@ -26,35 +26,47 @@ export const BusinessUserManager: React.FC = () => {
   // Business form
   const [newBizId, setNewBizId] = useState('');
   const [newBizName, setNewBizName] = useState('');
+  const [businessError, setBusinessError] = useState('');
 
   // User form
   const [newUserId, setNewUserId] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [userError, setUserError] = useState('');
 
-  const handleAddBusiness = (e: React.FormEvent) => {
+  const handleAddBusiness = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBizId.trim() || !newBizName.trim()) return;
 
-    addBusiness({
-      id: newBizId.trim().toLowerCase().replace(/\s+/g, '_'),
-      name: newBizName.trim(),
-    });
+    setBusinessError('');
+    try {
+      await addBusiness({
+        id: newBizId.trim().toLowerCase().replace(/\s+/g, '_'),
+        name: newBizName.trim(),
+      });
 
-    setNewBizId('');
-    setNewBizName('');
+      setNewBizId('');
+      setNewBizName('');
+    } catch (error) {
+      setBusinessError(error instanceof Error ? error.message : 'Unable to register business');
+    }
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserId.trim()) return;
 
-    addUser({
-      id: newUserId.trim().toLowerCase().replace(/\s+/g, '_'),
-      name: newUserName.trim() || undefined,
-    });
+    setUserError('');
+    try {
+      await addUser({
+        id: newUserId.trim().toLowerCase().replace(/\s+/g, '_'),
+        name: newUserName.trim() || undefined,
+      });
 
-    setNewUserId('');
-    setNewUserName('');
+      setNewUserId('');
+      setNewUserName('');
+    } catch (error) {
+      setUserError(error instanceof Error ? error.message : 'Unable to register user');
+    }
   };
 
   return (
@@ -148,6 +160,7 @@ export const BusinessUserManager: React.FC = () => {
               >
                 + Register Business Tenant
               </button>
+              {businessError && <p className="text-xs text-red-400">{businessError}</p>}
             </form>
           </div>
         </div>
@@ -227,6 +240,7 @@ export const BusinessUserManager: React.FC = () => {
               >
                 + Register User
               </button>
+              {userError && <p className="text-xs text-red-400">{userError}</p>}
             </form>
           </div>
         </div>
