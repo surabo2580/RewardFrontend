@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useReward } from '../context/RewardContext';
 import { api } from '../api/client';
 import { 
@@ -40,11 +40,12 @@ export const ApiSandbox: React.FC = () => {
   const [eventPayload, setEventPayload] = useState<string>(
     JSON.stringify(
       {
-        tenantId: selectedBusinessId || 'taj',
-        memberId: selectedUserId || 'user123',
+        tenantId: selectedBusinessId || localStorage.getItem('tenantId') || '',
+        branchCode: localStorage.getItem('branchCode') || 'MUM-01',
+        memberId: selectedUserId || localStorage.getItem('memberId') || '',
         eventType: 'PURCHASE',
-        amount: 150,
-        referenceId: 'ORD-9842',
+        amount: 5000,
+        referenceId: 'ORDER-1001',
       },
       null,
       2
@@ -52,8 +53,8 @@ export const ApiSandbox: React.FC = () => {
   );
 
   // Wallet API state
-  const [walletParamBiz, setWalletParamBiz] = useState<string>(selectedBusinessId);
-  const [walletParamUser, setWalletParamUser] = useState<string>(selectedUserId);
+  const [walletParamBiz, setWalletParamBiz] = useState<string>(selectedBusinessId || localStorage.getItem('tenantId') || '');
+  const [walletParamUser, setWalletParamUser] = useState<string>(selectedUserId || localStorage.getItem('memberId') || '');
 
   // Execution result
   const [apiResponse, setApiResponse] = useState<{
@@ -72,13 +73,18 @@ export const ApiSandbox: React.FC = () => {
     setHealthStatus({ checked: true, connected: health.connected, message: health.message });
   };
 
+  const apiKey = localStorage.getItem('tenantApiKey') || '';
+
   const curlEvents = `curl -i -X POST ${backendUrl}/api/events \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: ${apiKey}" \\
   -d '${eventPayload.replace(/\n\s*/g, ' ')}'`;
 
-  const curlWallet = `curl -i -X GET ${backendUrl}/api/wallet-history/${walletParamBiz}/${walletParamUser}`;
+  const curlWallet = `curl -i -X GET ${backendUrl}/api/wallet-history/${walletParamBiz}/${walletParamUser} \\
+  -H "X-API-Key: ${apiKey}"`;
   const curlHealth = `curl -i -X GET ${backendUrl}/api/health`;
-  const curlTenants = `curl -i -X GET ${backendUrl}/api/tenants`;
+  const curlTenants = `curl -i -X GET ${backendUrl}/api/tenants \\
+  -H "X-API-Key: ${apiKey}"`;
 
   const currentCurl =
     activeEndpoint === 'events'
@@ -182,9 +188,9 @@ export const ApiSandbox: React.FC = () => {
           try {
             const parsed = JSON.parse(eventPayload);
             const result = processEvent({
-              userId: parsed.userId,
-              businessId: parsed.businessId,
-              event: parsed.eventType || parsed.event,
+              userId: parsed.memberId || parsed.userId,
+              businessId: parsed.tenantId || parsed.businessId,
+              event: parsed.eventType,
               properties: {
                 amount: parsed.amount || parsed.properties?.amount || 0,
                 ...(parsed.properties || {}),
@@ -399,12 +405,12 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        businessId: selectedBusinessId || 'taj',
-                        userId: selectedUserId || 'user123',
-                        event: 'PURCHASE',
-                        amount: 150.0,
-                        referenceId: 'ORD-9842',
-                        properties: { amount: 150.0 }
+                        tenantId: selectedBusinessId || localStorage.getItem('tenantId') || '',
+                        branchCode: localStorage.getItem('branchCode') || 'MUM-01',
+                        memberId: selectedUserId || localStorage.getItem('memberId') || '',
+                        eventType: 'PURCHASE',
+                        amount: 5000,
+                        referenceId: 'ORDER-1001'
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-indigo-300 rounded border border-slate-700"
                     >
@@ -413,12 +419,12 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        businessId: selectedBusinessId || 'taj',
-                        userId: selectedUserId || 'user123',
-                        event: 'SIGNUP',
-                        amount: 0.0,
+                        tenantId: selectedBusinessId || localStorage.getItem('tenantId') || '',
+                        branchCode: localStorage.getItem('branchCode') || 'MUM-01',
+                        memberId: selectedUserId || localStorage.getItem('memberId') || '',
+                        eventType: 'SIGNUP',
+                        amount: 0,
                         referenceId: 'USER-INIT-01',
-                        properties: { channel: 'organic' }
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-emerald-300 rounded border border-slate-700"
                     >
@@ -427,12 +433,12 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        businessId: selectedBusinessId || 'taj',
-                        userId: selectedUserId || 'user123',
-                        event: 'REFERRAL',
-                        amount: 0.0,
+                        tenantId: selectedBusinessId || localStorage.getItem('tenantId') || '',
+                        branchCode: localStorage.getItem('branchCode') || 'MUM-01',
+                        memberId: selectedUserId || localStorage.getItem('memberId') || '',
+                        eventType: 'REFERRAL',
+                        amount: 0,
                         referenceId: 'REF-7721',
-                        properties: { friendUserId: 'user456' }
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-amber-300 rounded border border-slate-700"
                     >
@@ -454,7 +460,7 @@ export const ApiSandbox: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-slate-300 mb-1">
-                      &#123;businessId&#125;
+                      &#123;tenantId&#125;
                     </label>
                     <input
                       type="text"
@@ -465,7 +471,7 @@ export const ApiSandbox: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-xs text-slate-300 mb-1">
-                      &#123;userId&#125;
+                      &#123;memberId&#125;
                     </label>
                     <input
                       type="text"

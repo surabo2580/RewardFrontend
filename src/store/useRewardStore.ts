@@ -58,17 +58,9 @@ interface RewardStoreState {
   resetToDefaults: () => void;
 }
 
-const INITIAL_BUSINESSES: Business[] = [
-  { id: 'taj', name: 'Taj Luxury Hotels & Dining', createdAt: Date.now() - 86400000 * 30 },
-  { id: 'club_abc', name: 'Club ABC Premier Fitness', createdAt: Date.now() - 86400000 * 20 },
-  { id: 'tech_haven', name: 'TechHaven Electronics', createdAt: Date.now() - 86400000 * 10 },
-];
+const INITIAL_BUSINESSES: Business[] = [];
 
-const INITIAL_USERS: User[] = [
-  { id: 'user123', name: 'Alex Rivera (Original Demo User)', createdAt: Date.now() - 86400000 * 15 },
-  { id: 'sophia_chen', name: 'Sophia Chen', createdAt: Date.now() - 86400000 * 10 },
-  { id: 'marcus_v', name: 'Marcus Vance', createdAt: Date.now() - 86400000 * 5 },
-];
+const INITIAL_USERS: User[] = [];
 
 const INITIAL_RULES: RewardRule[] = [
   // Rules for "taj"
@@ -156,16 +148,22 @@ const INITIAL_RULES: RewardRule[] = [
 export const useRewardStore = create<RewardStoreState>()(
   persist(
     (set) => ({
-      selectedBusinessId: 'taj',
+      selectedBusinessId: localStorage.getItem('tenantId') || '',
       setSelectedBusinessId: (id: string) =>
-        set((state) => ({
-          selectedBusinessId: state.businesses.some((b) => b.id === id) ? id : state.businesses[0]?.id || 'taj',
-        })),
-      selectedUserId: 'user123',
+        set((state) => {
+          localStorage.setItem('tenantId', id);
+          return {
+            selectedBusinessId: state.businesses.some((b) => b.id === id) ? id : state.businesses[0]?.id || id,
+          };
+        }),
+      selectedUserId: localStorage.getItem('memberId') || '',
       setSelectedUserId: (id: string) =>
-        set((state) => ({
-          selectedUserId: state.users.some((u) => u.id === id) ? id : state.users[0]?.id || 'user123',
-        })),
+        set((state) => {
+          localStorage.setItem('memberId', id);
+          return {
+            selectedUserId: state.users.some((u) => u.id === id) ? id : state.users[0]?.id || id,
+          };
+        }),
 
       users: INITIAL_USERS,
       businesses: INITIAL_BUSINESSES,
@@ -173,32 +171,61 @@ export const useRewardStore = create<RewardStoreState>()(
       setUsers: (users) => set({ users }),
       refreshDirectory: async () => {
         try {
-          const [backendBusinesses, backendUsers] = await Promise.all([
-            apiClient.getBusinesses(),
-            apiClient.getUsers(),
-          ]);
-
-          const nextBusinesses = backendBusinesses.length > 0 ? backendBusinesses : INITIAL_BUSINESSES;
-          const nextUsers = backendUsers.length > 0 ? backendUsers : INITIAL_USERS;
+          const backendTenants = await apiClient.getTenants();
+          const nextBusinesses: Business[] = backendTenants.map((t) => ({
+            id: t.id,
+            name: t.name,
+            createdAt: t.createdAt ? new Date(t.createdAt).getTime() : Date.now(),
+          }));
 
           set((state) => {
             const selectedBusinessId = nextBusinesses.some((b) => b.id === state.selectedBusinessId)
               ? state.selectedBusinessId
-              : nextBusinesses[0]?.id || state.selectedBusinessId || 'taj';
+              : nextBusinesses[0]?.id || state.selectedBusinessId || '';
 
-            const selectedUserId = nextUsers.some((u) => u.id === state.selectedUserId)
-              ? state.selectedUserId
-              : nextUsers[0]?.id || state.selectedUserId || 'user123';
+            const nextUsers: User[] = [];
+
+            if (selectedBusinessId) {
+              void apiClient.getMembers(selectedBusinessId).then((members) => {
+                const mappedUsers: User[] = members.map((m) => ({
+                  id: m.externalUserId,
+                  name: m.email || m.externalUserId,
+                  createdAt: m.createdAt ? new Date(m.createdAt).getTime() : Date.now(),
+                }));
+
+                set((innerState) => {
+                  const selectedUserId = mappedUsers.some((u) => u.id === innerState.selectedUserId)
+                    ? innerState.selectedUserId
+                    : mappedUsers[0]?.id || '';
+
+                  if (selectedUserId) {
+                    localStorage.setItem('memberId', selectedUserId);
+                  }
+
+                  return {
+                    users: mappedUsers,
+                    selectedUserId,
+                  };
+                });
+              }).catch((error) => {
+                console.warn('Failed to refresh members for tenant', error);
+                set({ users: [], selectedUserId: '' });
+              });
+            }
+
+            if (selectedBusinessId) {
+              localStorage.setItem('tenantId', selectedBusinessId);
+            }
 
             return {
               businesses: nextBusinesses,
               users: nextUsers,
               selectedBusinessId,
-              selectedUserId,
+              selectedUserId: state.selectedUserId,
             };
           });
         } catch (error) {
-          console.warn('Failed to refresh directory from backend; keeping demo defaults.', error);
+          console.warn('Failed to refresh tenant directory from backend.', error);
         }
       },
 
@@ -220,7 +247,7 @@ export const useRewardStore = create<RewardStoreState>()(
       transactionsPagination: { page: 1, pageSize: 50 },
       setTransactionsPagination: (pagination) => set({ transactionsPagination: pagination }),
 
-      localRules: INITIAL_RULES,
+      localRules: [],
       setLocalRules: (rules) => set({ localRules: rules }),
       addLocalRule: (rule) =>
         set((state) => ({
@@ -244,18 +271,26 @@ export const useRewardStore = create<RewardStoreState>()(
       setLocalTransactions: (transactions) => set({ localTransactions: transactions }),
 
       resetToDefaults: () =>
-        set({
-          selectedBusinessId: 'taj',
-          selectedUserId: 'user123',
-          businesses: INITIAL_BUSINESSES,
-          users: INITIAL_USERS,
-          localRules: INITIAL_RULES,
-          localWallets: [],
-          localTransactions: [],
-          rulesFilter: {},
-          transactionsFilter: {},
-          rulesPagination: { page: 1, pageSize: 20 },
-          transactionsPagination: { page: 1, pageSize: 50 },
+        set(() => {
+          localStorage.removeItem('tenantId');
+          localStorage.removeItem('programId');
+          localStorage.removeItem('tenantApiKey');
+          localStorage.removeItem('memberId');
+          localStorage.removeItem('branchCode');
+
+          return {
+            selectedBusinessId: '',
+            selectedUserId: '',
+            businesses: INITIAL_BUSINESSES,
+            users: INITIAL_USERS,
+            localRules: [],
+            localWallets: [],
+            localTransactions: [],
+            rulesFilter: {},
+            transactionsFilter: {},
+            rulesPagination: { page: 1, pageSize: 20 },
+            transactionsPagination: { page: 1, pageSize: 50 },
+          };
         }),
     }),
     {

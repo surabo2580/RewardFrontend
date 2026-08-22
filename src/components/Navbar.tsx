@@ -33,9 +33,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   } = useReward();
 
   const currentWallet = getWallet(selectedUserId, selectedBusinessId);
-  const selectedBusiness = businesses.find((b) => b.id === selectedBusinessId);
-  const selectedUser = users.find((u) => u.id === selectedUserId);
-
   const navItems = [
     { id: 'events', label: 'Track Events', icon: Send, count: null },
     { id: 'rules', label: 'Reward Rules', icon: SlidersHorizontal, count: null },
@@ -81,6 +78,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 onChange={(e) => setSelectedBusinessId(e.target.value)}
                 className="bg-transparent text-white font-medium focus:outline-none cursor-pointer pr-2"
               >
+                {businesses.length === 0 && (
+                  <option value="" className="bg-slate-900 text-white">
+                    No tenants
+                  </option>
+                )}
                 {businesses.map((b) => (
                   <option key={b.id} value={b.id} className="bg-slate-900 text-white">
                     {b.name} ({b.id})
@@ -99,6 +101,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 onChange={(e) => setSelectedUserId(e.target.value)}
                 className="bg-transparent text-white font-medium focus:outline-none cursor-pointer pr-2"
               >
+                {users.length === 0 && (
+                  <option value="" className="bg-slate-900 text-white">
+                    No members
+                  </option>
+                )}
                 {users.map((u) => (
                   <option key={u.id} value={u.id} className="bg-slate-900 text-white">
                     {u.name || u.id} ({u.id})
