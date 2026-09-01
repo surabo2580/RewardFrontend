@@ -66,6 +66,7 @@ export interface SponsorDto {
   parentSponsorId: number | null;
   name: string;
   sponsorCode: string;
+  sponsorType: 'HOST' | 'CHILD' | 'PARTNER';
   status: string;
 }
 
@@ -75,10 +76,53 @@ export interface SponsorLocationDto {
   sponsorId: number;
   locationName: string;
   locationCode: string;
+  locationPin: string;
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   status: string;
+}
+
+export interface PartnerMembershipDto {
+  id: number;
+  tenantId: number;
+  sponsorId: number;
+  externalMembershipId: string;
+  memberId: number;
+  status: string;
+  createdAt?: string;
+}
+
+export interface ReconciliationBatchDto {
+  id: number;
+  tenantId: number;
+  sponsorId: number;
+  periodStart: string;
+  periodEnd: string;
+  pointCost: number;
+  totalPoints: number;
+  totalAmount: number;
+  lineCount: number;
+  status: string;
+  createdAt?: string;
+}
+
+export interface ReconciliationLineDto {
+  id: number;
+  batchId: number;
+  tenantId: number;
+  sponsorId: number;
+  transactionId: number;
+  memberId: number;
+  points: number;
+  pointCost: number;
+  amount: number;
+  createdAt?: string;
+}
+
+export interface ReconciliationRunDto {
+  batch: ReconciliationBatchDto;
+  lines: ReconciliationLineDto[];
 }
 
 export interface MemberDto {
@@ -98,7 +142,8 @@ export interface EventRequest {
   locationId?: number;
   locationCode?: string;
   branchCode?: string;
-  memberId: string;
+  memberId?: string;
+  externalMembershipId?: string;
   eventType: string;
   amount: number;
   referenceId?: string;
@@ -247,6 +292,7 @@ export class SpringBootApiClient {
     parentSponsorId?: number | null;
     name: string;
     sponsorCode: string;
+    sponsorType?: 'HOST' | 'CHILD' | 'PARTNER';
     status?: string;
   }): Promise<SponsorDto> {
     return apiFetch<SponsorDto>('/api/sponsors', { method: 'POST', body: JSON.stringify(payload) });
@@ -261,6 +307,7 @@ export class SpringBootApiClient {
     sponsorId: number;
     locationName: string;
     locationCode: string;
+    locationPin?: string;
     address?: string;
     status?: string;
   }): Promise<SponsorLocationDto> {
@@ -352,6 +399,50 @@ export class SpringBootApiClient {
     return apiFetch<EventResponse>('/api/events', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+  }
+
+  async createPartnerMembership(payload: {
+    tenantId: number;
+    sponsorId: number;
+    externalMembershipId: string;
+    memberId: string;
+    status?: string;
+  }): Promise<PartnerMembershipDto> {
+    return apiFetch<PartnerMembershipDto>('/api/partner-memberships', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getPartnerMemberships(tenantId: number, sponsorId: number): Promise<PartnerMembershipDto[]> {
+    return apiFetch<PartnerMembershipDto[]>(`/api/partner-memberships?tenantId=${tenantId}&sponsorId=${sponsorId}`, {
+      method: 'GET',
+    });
+  }
+
+  async createReconciliationBatch(payload: {
+    tenantId: number;
+    sponsorId: number;
+    periodStart: string;
+    periodEnd: string;
+    pointCost: number;
+  }): Promise<ReconciliationRunDto> {
+    return apiFetch<ReconciliationRunDto>('/api/reconciliation/batches', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getReconciliationBatches(tenantId: number): Promise<ReconciliationBatchDto[]> {
+    return apiFetch<ReconciliationBatchDto[]>(`/api/reconciliation/batches?tenantId=${tenantId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getReconciliationLines(tenantId: number, batchId: number): Promise<ReconciliationLineDto[]> {
+    return apiFetch<ReconciliationLineDto[]>(`/api/reconciliation/batches/${batchId}/lines?tenantId=${tenantId}`, {
+      method: 'GET',
     });
   }
 

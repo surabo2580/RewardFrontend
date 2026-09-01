@@ -10,6 +10,8 @@ import { BusinessUserManager } from './components/BusinessUserManager';
 import { KotlinSourceViewer } from './components/KotlinSourceViewer';
 import { RepoArchitectureGuide } from './components/RepoArchitectureGuide';
 import { SponsorManager } from './components/SponsorManager';
+import { PartnerMembershipManager } from './components/PartnerMembershipManager';
+import { ReconciliationManager } from './components/ReconciliationManager';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity,
@@ -49,9 +51,9 @@ type AppTab =
   | 'repos'
   | 'offers'
   | 'sponsors'
-  | 'members'
+  | 'partnerMemberships'
   | 'bits'
-  | 'batches';
+  | 'reconciliation';
 
 const SidebarItem: React.FC<{
   icon: React.ComponentType<{ className?: string }>;
@@ -250,11 +252,14 @@ const AppContent: React.FC = () => {
     if (activeTab === 'sponsors') {
       return <SponsorManager />;
     }
-    if (activeTab === 'members') {
-      return <PlaceholderModule title="Members" subtitle="Member profile analytics and segmentation controls." />;
+    if (activeTab === 'partnerMemberships') {
+      return <PartnerMembershipManager />;
     }
     if (activeTab === 'bits') {
       return <PlaceholderModule title="BITs" subtitle="Brand interaction trackers and engagement events." />;
+    }
+    if (activeTab === 'reconciliation') {
+      return <ReconciliationManager />;
     }
     return <PlaceholderModule title="Batches" subtitle="Batch processing jobs and data import automation." />;
   };
@@ -284,9 +289,9 @@ const AppContent: React.FC = () => {
           <SidebarItem icon={Grid2x2} label="Dashboard" tab="dashboard" activeTab={activeTab} setActiveTab={setActiveTab} />
           <SidebarItem icon={Megaphone} label="Offers" tab="offers" activeTab={activeTab} setActiveTab={setActiveTab} />
           <SidebarItem icon={Network} label="Sponsors" tab="sponsors" activeTab={activeTab} setActiveTab={setActiveTab} count="85" />
-          <SidebarItem icon={Users} label="Members" tab="members" activeTab={activeTab} setActiveTab={setActiveTab} count="138,3..." />
+          <SidebarItem icon={Users} label="Partner Memberships" tab="partnerMemberships" activeTab={activeTab} setActiveTab={setActiveTab} />
           <SidebarItem icon={Radar} label="BITs" tab="bits" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={Layers3} label="Batches" tab="batches" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={Layers3} label="Reconciliation" tab="reconciliation" activeTab={activeTab} setActiveTab={setActiveTab} />
 
           <div className="my-3 border-t border-slate-700/80" />
 

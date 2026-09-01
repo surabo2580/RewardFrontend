@@ -46,6 +46,7 @@ export const ApiSandbox: React.FC = () => {
         eventType: 'PURCHASE',
         amount: 5000,
         referenceId: 'ORDER-1001',
+        channel: 'POS',
       },
       null,
       2

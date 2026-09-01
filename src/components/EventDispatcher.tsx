@@ -61,6 +61,7 @@ export const EventDispatcher: React.FC = () => {
         eventType,
         amount: Number(amount),
         referenceId: referenceId || undefined,
+        channel: 'POS',
       });
 
       setResult(response);
