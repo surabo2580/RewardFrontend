@@ -36,18 +36,22 @@ export const ApiSandbox: React.FC = () => {
     message: '',
   });
 
+  const getDefaultEventPayload = () => ({
+    tenantId: Number(selectedBusinessId || localStorage.getItem('tenantId') || 0),
+    programId: Number(localStorage.getItem('programId') || 0),
+    sponsorId: Number(localStorage.getItem('sponsorId') || 0),
+    branchCode: localStorage.getItem('branchCode') || 'MUM-01',
+    memberId: selectedUserId || localStorage.getItem('memberId') || '',
+    eventType: 'PURCHASE',
+    amount: 5000,
+    referenceId: 'ORDER-1001',
+    channel: 'POS',
+  });
+
   // Events API state (New architecture: tenantId, memberId, eventType, amount, referenceId)
   const [eventPayload, setEventPayload] = useState<string>(
     JSON.stringify(
-      {
-        tenantId: selectedBusinessId || localStorage.getItem('tenantId') || '',
-        branchCode: localStorage.getItem('branchCode') || 'MUM-01',
-        memberId: selectedUserId || localStorage.getItem('memberId') || '',
-        eventType: 'PURCHASE',
-        amount: 5000,
-        referenceId: 'ORDER-1001',
-        channel: 'POS',
-      },
+      getDefaultEventPayload(),
       null,
       2
     )
@@ -111,6 +115,34 @@ export const ApiSandbox: React.FC = () => {
       try {
         if (activeEndpoint === 'events') {
           const parsed = JSON.parse(eventPayload);
+
+          const missingFields: string[] = [];
+          if (!parsed.tenantId) missingFields.push('tenantId');
+          if (!parsed.programId) missingFields.push('programId');
+          if (!parsed.sponsorId) missingFields.push('sponsorId');
+          if (!parsed.memberId) missingFields.push('memberId');
+          if (!parsed.eventType) missingFields.push('eventType');
+          if (parsed.amount === undefined || parsed.amount === null || Number.isNaN(Number(parsed.amount))) {
+            missingFields.push('amount');
+          }
+
+          if (missingFields.length > 0) {
+            const elapsed = Math.round(performance.now() - start);
+            setApiResponse({
+              status: 400,
+              statusText: 'Bad Request',
+              durationMs: elapsed,
+              headers: { 'content-type': 'application/json' },
+              body: {
+                error: 'Missing or invalid required fields',
+                message: `Please provide valid values for: ${missingFields.join(', ')}`,
+                requiredEventFields: ['tenantId', 'programId', 'sponsorId', 'memberId', 'eventType', 'amount'],
+              },
+            });
+            setIsExecuting(false);
+            return;
+          }
+
           const result = await api.postEvent(parsed);
           const elapsed = Math.round(performance.now() - start);
 
@@ -169,15 +201,21 @@ export const ApiSandbox: React.FC = () => {
         }
       } catch (err: any) {
         const elapsed = Math.round(performance.now() - start);
+
+        const status = typeof err?.status === 'number' ? err.status : 400;
+        const statusText = err?.statusText || (status >= 500 ? 'Internal Server Error' : 'Bad Request');
+        const errorBody = err?.body && typeof err.body === 'object'
+          ? err.body
+          : {
+              error: err?.message || 'Request failed',
+            };
+
         setApiResponse({
-          status: 400,
-          statusText: 'Bad Request / Validation Error',
+          status,
+          statusText,
           durationMs: elapsed,
           headers: { 'content-type': 'application/json' },
-          body: {
-            error: 'Spring Boot Request Failed',
-            message: err.message,
-          },
+          body: errorBody,
         });
       } finally {
         setIsExecuting(false);
@@ -406,12 +444,15 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        tenantId: selectedBusinessId || localStorage.getItem('tenantId') || '',
+                        tenantId: Number(selectedBusinessId || localStorage.getItem('tenantId') || 0),
+                        programId: Number(localStorage.getItem('programId') || 0),
+                        sponsorId: Number(localStorage.getItem('sponsorId') || 0),
                         branchCode: localStorage.getItem('branchCode') || 'MUM-01',
                         memberId: selectedUserId || localStorage.getItem('memberId') || '',
                         eventType: 'PURCHASE',
                         amount: 5000,
-                        referenceId: 'ORDER-1001'
+                        referenceId: 'ORDER-1001',
+                        channel: 'POS',
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-indigo-300 rounded border border-slate-700"
                     >
@@ -420,12 +461,15 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        tenantId: selectedBusinessId || localStorage.getItem('tenantId') || '',
+                        tenantId: Number(selectedBusinessId || localStorage.getItem('tenantId') || 0),
+                        programId: Number(localStorage.getItem('programId') || 0),
+                        sponsorId: Number(localStorage.getItem('sponsorId') || 0),
                         branchCode: localStorage.getItem('branchCode') || 'MUM-01',
                         memberId: selectedUserId || localStorage.getItem('memberId') || '',
                         eventType: 'SIGNUP',
                         amount: 0,
                         referenceId: 'USER-INIT-01',
+                        channel: 'POS',
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-emerald-300 rounded border border-slate-700"
                     >
@@ -434,16 +478,26 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        tenantId: selectedBusinessId || localStorage.getItem('tenantId') || '',
+                        tenantId: Number(selectedBusinessId || localStorage.getItem('tenantId') || 0),
+                        programId: Number(localStorage.getItem('programId') || 0),
+                        sponsorId: Number(localStorage.getItem('sponsorId') || 0),
                         branchCode: localStorage.getItem('branchCode') || 'MUM-01',
                         memberId: selectedUserId || localStorage.getItem('memberId') || '',
                         eventType: 'REFERRAL',
                         amount: 0,
                         referenceId: 'REF-7721',
+                        channel: 'POS',
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-amber-300 rounded border border-slate-700"
                     >
                       Referral
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEventPayload(JSON.stringify(getDefaultEventPayload(), null, 2))}
+                      className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-cyan-300 rounded border border-slate-700"
+                    >
+                      Reset
                     </button>
                   </div>
                 </div>

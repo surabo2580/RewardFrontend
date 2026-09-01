@@ -190,6 +190,43 @@ export interface LoginResponse {
   tokenType: string;
   expiresInSeconds: number;
   user: SystemUserProfile;
+  mustChangePassword: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  resetToken?: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface InviteSystemUserRequest {
+  email: string;
+  role: string;
+  sponsorId?: number;
+}
+
+export interface InviteSystemUserResponse {
+  userId: number;
+  email: string;
+  role: string;
+  status: string;
+  expiresAt: string;
+  inviteToken: string;
+  inviteLink: string;
+}
+
+export interface AcceptInviteRequest {
+  token: string;
+  password: string;
 }
 
 export interface SelfServeRegisterRequest {
@@ -239,6 +276,15 @@ function getStoredAccessToken(): string {
   return localStorage.getItem('dashboardAccessToken') || '';
 }
 
+function persistSessionToken(response: { accessToken: string; user: SystemUserProfile }): void {
+  localStorage.setItem('dashboardAccessToken', response.accessToken);
+  localStorage.setItem('tenantId', String(response.user.tenantId));
+  localStorage.setItem('programId', String(response.user.programId));
+  if (response.user.sponsorId) {
+    localStorage.setItem('sponsorId', String(response.user.sponsorId));
+  }
+}
+
 async function apiFetch<T>(path: string, options: RequestInit = {}, includeApiKey = true): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -263,11 +309,26 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, includeApiKe
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: any = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
 
   if (!response.ok) {
-    const message = data?.message || data?.error || `HTTP ${response.status}`;
-    throw new Error(message);
+    const message = (typeof data === 'object' ? data?.message || data?.error : null) || `HTTP ${response.status}`;
+    const error = new Error(message) as Error & {
+      status?: number;
+      statusText?: string;
+      body?: any;
+    };
+    error.status = response.status;
+    error.statusText = response.statusText;
+    error.body = data;
+    throw error;
   }
 
   return data as T;
@@ -312,13 +373,45 @@ export class SpringBootApiClient {
       false
     );
 
-    localStorage.setItem('dashboardAccessToken', response.accessToken);
-    localStorage.setItem('tenantId', String(response.user.tenantId));
-    localStorage.setItem('programId', String(response.user.programId));
-    if (response.user.sponsorId) {
-      localStorage.setItem('sponsorId', String(response.user.sponsorId));
-    }
+    persistSessionToken(response);
 
+    return response;
+  }
+
+  async changePassword(payload: ChangePasswordRequest): Promise<LoginResponse> {
+    const response = await apiFetch<LoginResponse>(
+      '/api/auth/change-password',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      false
+    );
+    persistSessionToken(response);
+    return response;
+  }
+
+  async forgotPassword(email: string): Promise<ForgotPasswordResponse> {
+    return apiFetch<ForgotPasswordResponse>(
+      '/api/auth/forgot-password',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      },
+      false
+    );
+  }
+
+  async resetPassword(payload: ResetPasswordRequest): Promise<LoginResponse> {
+    const response = await apiFetch<LoginResponse>(
+      '/api/auth/reset-password',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      false
+    );
+    persistSessionToken(response);
     return response;
   }
 
@@ -336,12 +429,7 @@ export class SpringBootApiClient {
       false
     );
 
-    localStorage.setItem('dashboardAccessToken', response.accessToken);
-    localStorage.setItem('tenantId', String(response.user.tenantId));
-    localStorage.setItem('programId', String(response.user.programId));
-    if (response.user.sponsorId) {
-      localStorage.setItem('sponsorId', String(response.user.sponsorId));
-    }
+    persistSessionToken(response);
 
     return response;
   }
@@ -355,6 +443,30 @@ export class SpringBootApiClient {
       },
       false
     );
+  }
+
+  async inviteSystemUser(payload: InviteSystemUserRequest): Promise<InviteSystemUserResponse> {
+    return apiFetch<InviteSystemUserResponse>(
+      '/api/users/invite',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      false
+    );
+  }
+
+  async acceptInvite(payload: AcceptInviteRequest): Promise<LoginResponse> {
+    const response = await apiFetch<LoginResponse>(
+      '/api/users/accept-invite',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      false
+    );
+    persistSessionToken(response);
+    return response;
   }
 
   async logout(): Promise<void> {

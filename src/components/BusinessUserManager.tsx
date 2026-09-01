@@ -41,6 +41,11 @@ export const BusinessUserManager: React.FC = () => {
   const [memberTier, setMemberTier] = useState('SILVER');
   const [memberError, setMemberError] = useState('');
 
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('PROGRAM_ANALYST');
+  const [inviteError, setInviteError] = useState('');
+  const [inviteResult, setInviteResult] = useState<{ inviteToken: string; inviteLink: string; expiresAt: string } | null>(null);
+
   const selectedBranchCode = localStorage.getItem('branchCode') || '';
   const tenantApiKey = localStorage.getItem('tenantApiKey') || '';
 
@@ -155,6 +160,28 @@ export const BusinessUserManager: React.FC = () => {
       setMemberTier('SILVER');
     } catch (error: any) {
       setMemberError(error.message || 'Unable to create member');
+    }
+  };
+
+  const handleInviteUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteError('');
+    setInviteResult(null);
+
+    try {
+      const response = await api.inviteSystemUser({
+        email: inviteEmail.trim(),
+        role: inviteRole,
+      });
+      setInviteResult({
+        inviteToken: response.inviteToken,
+        inviteLink: response.inviteLink,
+        expiresAt: response.expiresAt,
+      });
+      setInviteEmail('');
+      setInviteRole('PROGRAM_ANALYST');
+    } catch (error: any) {
+      setInviteError(error.message || 'Unable to invite user');
     }
   };
 
@@ -307,6 +334,27 @@ export const BusinessUserManager: React.FC = () => {
             {memberError && <p className="text-xs text-rose-400">{memberError}</p>}
           </form>
         </div>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-300">
+        <div className="flex items-center gap-2 mb-1"><UsersIcon className="w-4 h-4 text-cyan-300" /><span className="font-semibold">Team User Invitation</span></div>
+        <form onSubmit={handleInviteUser} className="space-y-2 mb-3">
+          <input className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white" type="email" placeholder="team member email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
+          <select className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+            <option value="PROGRAM_MANAGER">PROGRAM_MANAGER</option>
+            <option value="PROGRAM_ANALYST">PROGRAM_ANALYST</option>
+            <option value="SPONSOR_ADMIN">SPONSOR_ADMIN</option>
+          </select>
+          <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-white rounded px-3 py-2 text-sm font-semibold">Generate Invite Link</button>
+          {inviteError && <p className="text-xs text-rose-400">{inviteError}</p>}
+        </form>
+        {inviteResult && (
+          <div className="text-xs text-cyan-200 bg-cyan-950/30 border border-cyan-700/40 rounded p-3 mb-3">
+            <div className="font-mono break-all">inviteLink: {inviteResult.inviteLink}</div>
+            <div className="font-mono break-all mt-1">inviteToken: {inviteResult.inviteToken}</div>
+            <div className="font-mono mt-1">expiresAt: {inviteResult.expiresAt}</div>
+          </div>
+        )}
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-300">

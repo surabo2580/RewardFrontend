@@ -221,12 +221,18 @@ const PlaceholderModule: React.FC<{ title: string; subtitle: string }> = ({ titl
 };
 
 const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> = ({ onLoggedIn }) => {
-  const [mode, setMode] = useState<'signin' | 'selfServe' | 'enterprise'>('signin');
+  const [mode, setMode] = useState<'signin' | 'selfServe' | 'enterprise' | 'firstLogin' | 'forgot' | 'acceptInvite'>('signin');
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [signInError, setSignInError] = useState('');
+
+  const [firstLoginCurrentPassword, setFirstLoginCurrentPassword] = useState('');
+  const [firstLoginNewPassword, setFirstLoginNewPassword] = useState('');
+  const [firstLoginConfirmPassword, setFirstLoginConfirmPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [firstLoginError, setFirstLoginError] = useState('');
 
   const [businessName, setBusinessName] = useState('');
   const [slug, setSlug] = useState('');
@@ -248,6 +254,27 @@ const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> =
   const [inquiryError, setInquiryError] = useState('');
   const [inquirySuccess, setInquirySuccess] = useState('');
 
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [isSubmittingForgot, setIsSubmittingForgot] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [forgotError, setForgotError] = useState('');
+
+  const [inviteToken, setInviteToken] = useState('');
+  const [invitePassword, setInvitePassword] = useState('');
+  const [isAcceptingInvite, setIsAcceptingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl = params.get('token') || '';
+    if (window.location.pathname.includes('/invite/accept') && tokenFromUrl) {
+      setMode('acceptInvite');
+      setInviteToken(tokenFromUrl);
+    }
+  }, []);
+
   const toSlug = (value: string): string =>
     value
       .toLowerCase()
@@ -260,11 +287,38 @@ const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> =
     setIsSigningIn(true);
     try {
       const response = await api.login({ identifier, password });
+      if (response.mustChangePassword) {
+        setMode('firstLogin');
+        setFirstLoginCurrentPassword(password);
+        return;
+      }
       onLoggedIn(response.user);
     } catch (submitError: any) {
       setSignInError(submitError?.message || 'Unable to sign in');
     } finally {
       setIsSigningIn(false);
+    }
+  };
+
+  const handleFirstLoginPasswordChange = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setFirstLoginError('');
+    if (firstLoginNewPassword !== firstLoginConfirmPassword) {
+      setFirstLoginError('New password and confirmation do not match');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const response = await api.changePassword({
+        currentPassword: firstLoginCurrentPassword,
+        newPassword: firstLoginNewPassword,
+      });
+      onLoggedIn(response.user);
+    } catch (submitError: any) {
+      setFirstLoginError(submitError?.message || 'Unable to update password');
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -317,16 +371,62 @@ const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> =
     }
   };
 
+  const handleForgotPassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setForgotError('');
+    setForgotMessage('');
+    setIsSubmittingForgot(true);
+    try {
+      const response = await api.forgotPassword(forgotEmail);
+      setForgotMessage(response.message);
+      if (response.resetToken) {
+        setResetToken(response.resetToken);
+      }
+    } catch (submitError: any) {
+      setForgotError(submitError?.message || 'Unable to generate reset token');
+    } finally {
+      setIsSubmittingForgot(false);
+    }
+  };
+
+  const handleResetPassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setForgotError('');
+    setIsSubmittingForgot(true);
+    try {
+      const response = await api.resetPassword({ token: resetToken, newPassword: resetPassword });
+      onLoggedIn(response.user);
+    } catch (submitError: any) {
+      setForgotError(submitError?.message || 'Unable to reset password');
+    } finally {
+      setIsSubmittingForgot(false);
+    }
+  };
+
+  const handleAcceptInvite = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setInviteError('');
+    setIsAcceptingInvite(true);
+    try {
+      const response = await api.acceptInvite({ token: inviteToken, password: invitePassword });
+      onLoggedIn(response.user);
+    } catch (submitError: any) {
+      setInviteError(submitError?.message || 'Unable to accept invite');
+    } finally {
+      setIsAcceptingInvite(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0f18] text-slate-100 grid place-items-center px-4 py-10">
       <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900/90 p-6 sm:p-8 shadow-2xl shadow-black/40">
         <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Benevo Dashboard</div>
         <h1 className="text-2xl font-semibold mt-2">Access Portal</h1>
-        <p className="text-sm text-slate-400 mt-1">Sign in, self-register your business, or request enterprise onboarding.</p>
+        <p className="text-sm text-slate-400 mt-1">Sign in, register as a small business, or request enterprise onboarding for larger organizations.</p>
 
         <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
           <button type="button" onClick={() => setMode('signin')} className={`rounded-md px-2 py-2 border ${mode === 'signin' ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200' : 'border-slate-700 text-slate-300'}`}>Sign In</button>
-          <button type="button" onClick={() => setMode('selfServe')} className={`rounded-md px-2 py-2 border ${mode === 'selfServe' ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200' : 'border-slate-700 text-slate-300'}`}>Register</button>
+          <button type="button" onClick={() => setMode('selfServe')} className={`rounded-md px-2 py-2 border ${mode === 'selfServe' ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200' : 'border-slate-700 text-slate-300'}`}>Small Business</button>
           <button type="button" onClick={() => setMode('enterprise')} className={`rounded-md px-2 py-2 border ${mode === 'enterprise' ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200' : 'border-slate-700 text-slate-300'}`}>Enterprise</button>
         </div>
 
@@ -335,6 +435,7 @@ const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> =
             <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Email or username" required />
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Password" required />
             <button type="submit" disabled={isSigningIn} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isSigningIn ? 'Signing In...' : 'Sign In'}</button>
+            <button type="button" onClick={() => setMode('forgot')} className="w-full rounded-lg border border-slate-700 text-slate-300 px-3 py-2 text-sm">Forgot Password</button>
             {signInError && <p className="text-xs text-rose-400">{signInError}</p>}
             {inquirySuccess && <p className="text-xs text-emerald-400">{inquirySuccess}</p>}
           </form>
@@ -342,6 +443,7 @@ const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> =
 
         {mode === 'selfServe' && (
           <form className="mt-6 space-y-3" onSubmit={handleRegister}>
+            <p className="text-xs text-slate-400">For small businesses and startups that want instant self-serve setup.</p>
             <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Business name" required />
             <input value={slug} onChange={(e) => setSlug(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Subdomain slug (e.g. indianhotel)" required />
             <input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} type="email" className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Admin email" required />
@@ -355,6 +457,7 @@ const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> =
 
         {mode === 'enterprise' && (
           <form className="mt-6 space-y-3" onSubmit={handleEnterpriseInquiry}>
+            <p className="text-xs text-slate-400">For large businesses that need custom pricing, compliance, SSO, or managed onboarding.</p>
             <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Company name" required />
             <input value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Primary contact name" required />
             <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} type="email" className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Contact email" required />
@@ -366,6 +469,45 @@ const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> =
             <textarea value={enterpriseNotes} onChange={(e) => setEnterpriseNotes(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 h-24" placeholder="Custom pricing / compliance requirements" />
             <button type="submit" disabled={isSubmittingInquiry} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isSubmittingInquiry ? 'Submitting...' : 'Request Enterprise Onboarding'}</button>
             {inquiryError && <p className="text-xs text-rose-400">{inquiryError}</p>}
+          </form>
+        )}
+
+        {mode === 'firstLogin' && (
+          <form className="mt-6 space-y-3" onSubmit={handleFirstLoginPasswordChange}>
+            <p className="text-xs text-amber-300">First login detected. Change your temporary password to continue.</p>
+            <input type="password" value={firstLoginCurrentPassword} onChange={(e) => setFirstLoginCurrentPassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Current password" required />
+            <input type="password" value={firstLoginNewPassword} onChange={(e) => setFirstLoginNewPassword(e.target.value)} minLength={8} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="New password" required />
+            <input type="password" value={firstLoginConfirmPassword} onChange={(e) => setFirstLoginConfirmPassword(e.target.value)} minLength={8} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Confirm new password" required />
+            <button type="submit" disabled={isUpdatingPassword} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isUpdatingPassword ? 'Updating...' : 'Update Password'}</button>
+            {firstLoginError && <p className="text-xs text-rose-400">{firstLoginError}</p>}
+          </form>
+        )}
+
+        {mode === 'forgot' && (
+          <div className="mt-6 space-y-4">
+            <form className="space-y-3" onSubmit={handleForgotPassword}>
+              <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Account email" required />
+              <button type="submit" disabled={isSubmittingForgot} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isSubmittingForgot ? 'Generating...' : 'Generate Reset Token'}</button>
+              {forgotMessage && <p className="text-xs text-emerald-400">{forgotMessage}</p>}
+            </form>
+
+            <form className="space-y-3 border-t border-slate-800 pt-3" onSubmit={handleResetPassword}>
+              <input value={resetToken} onChange={(e) => setResetToken(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Reset token" required />
+              <input type="password" minLength={8} value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="New password" required />
+              <button type="submit" disabled={isSubmittingForgot} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isSubmittingForgot ? 'Resetting...' : 'Reset Password & Sign In'}</button>
+              <button type="button" onClick={() => setMode('signin')} className="w-full rounded-lg border border-slate-700 text-slate-300 px-3 py-2 text-sm">Back to Sign In</button>
+              {forgotError && <p className="text-xs text-rose-400">{forgotError}</p>}
+            </form>
+          </div>
+        )}
+
+        {mode === 'acceptInvite' && (
+          <form className="mt-6 space-y-3" onSubmit={handleAcceptInvite}>
+            <p className="text-xs text-cyan-300">Accept team invitation and set your password.</p>
+            <input value={inviteToken} onChange={(e) => setInviteToken(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Invite token" required />
+            <input type="password" minLength={8} value={invitePassword} onChange={(e) => setInvitePassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Choose password" required />
+            <button type="submit" disabled={isAcceptingInvite} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isAcceptingInvite ? 'Activating...' : 'Accept Invite & Sign In'}</button>
+            {inviteError && <p className="text-xs text-rose-400">{inviteError}</p>}
           </form>
         )}
       </div>

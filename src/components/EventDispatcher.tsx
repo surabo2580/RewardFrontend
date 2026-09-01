@@ -30,13 +30,34 @@ export const EventDispatcher: React.FC = () => {
       if (activeProgram && activeProgram.id !== programId) setProgramId(activeProgram.id);
       setSponsors(loadedSponsors);
       const activeSponsor = loadedSponsors.find((item) => item.id === sponsorId) || loadedSponsors[0];
-      if (activeSponsor && activeSponsor.id !== sponsorId) setSponsorId(activeSponsor.id);
+      if (activeSponsor && activeSponsor.id !== sponsorId) {
+        setSponsorId(activeSponsor.id);
+      } else if (!activeSponsor) {
+        setSponsorId(0);
+      }
     }).catch((err) => setError(err.message || 'Unable to load program sponsors'));
   }, [tenantId, programId]);
 
   React.useEffect(() => {
-    if (!tenantId || !sponsorId) return;
-    void api.getLocations(tenantId, sponsorId).then(setLocations).catch((err) => setError(err.message || 'Unable to load locations'));
+    if (!tenantId || !sponsorId) {
+      setLocations([]);
+      setLocationId(0);
+      localStorage.removeItem('locationId');
+      return;
+    }
+
+    void api
+      .getLocations(tenantId, sponsorId)
+      .then((loadedLocations) => {
+        setLocations(loadedLocations);
+
+        // Clear stale location selection when switching tenant/sponsor contexts.
+        if (locationId && !loadedLocations.some((item) => item.id === locationId)) {
+          setLocationId(0);
+          localStorage.removeItem('locationId');
+        }
+      })
+      .catch((err) => setError(err.message || 'Unable to load locations'));
   }, [tenantId, sponsorId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,11 +67,21 @@ export const EventDispatcher: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      if (locationId && !locations.some((item) => item.id === locationId)) {
+        setError('Selected location is not valid for this sponsor. Please reselect location.');
+        setIsSubmitting(false);
+        return;
+      }
+
       localStorage.setItem('tenantId', tenantId);
       localStorage.setItem('memberId', memberId);
       localStorage.setItem('programId', String(programId));
       localStorage.setItem('sponsorId', String(sponsorId));
-      if (locationId) localStorage.setItem('locationId', String(locationId));
+      if (locationId) {
+        localStorage.setItem('locationId', String(locationId));
+      } else {
+        localStorage.removeItem('locationId');
+      }
 
       const response = await api.postEvent({
         tenantId,
@@ -90,7 +121,16 @@ export const EventDispatcher: React.FC = () => {
             <span className="inline-flex items-center gap-1"><Building2 className="w-3.5 h-3.5" />Tenant</span>
             <select
               value={tenantId}
-              onChange={(e) => setTenantId(e.target.value)}
+              onChange={(e) => {
+                setTenantId(Number(e.target.value));
+                setProgramId(0);
+                setSponsorId(0);
+                setLocationId(0);
+                setLocations([]);
+                localStorage.removeItem('programId');
+                localStorage.removeItem('sponsorId');
+                localStorage.removeItem('locationId');
+              }}
               className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white"
               required
             >
