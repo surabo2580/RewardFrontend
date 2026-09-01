@@ -9,6 +9,7 @@ import { ApiSandbox } from './components/ApiSandbox';
 import { BusinessUserManager } from './components/BusinessUserManager';
 import { KotlinSourceViewer } from './components/KotlinSourceViewer';
 import { RepoArchitectureGuide } from './components/RepoArchitectureGuide';
+import { SponsorManager } from './components/SponsorManager';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity,
@@ -247,7 +248,7 @@ const AppContent: React.FC = () => {
       return <PlaceholderModule title="Offers" subtitle="Offer orchestration console for campaigns and dynamic rewards." />;
     }
     if (activeTab === 'sponsors') {
-      return <PlaceholderModule title="Sponsors" subtitle="Sponsor and partner performance workspace." />;
+      return <SponsorManager />;
     }
     if (activeTab === 'members') {
       return <PlaceholderModule title="Members" subtitle="Member profile analytics and segmentation controls." />;

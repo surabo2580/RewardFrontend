@@ -12,7 +12,7 @@ export interface ProvisionTenantRequest {
 }
 
 export interface TenantDto {
-  id: string;
+  id: number;
   name: string;
   slug: string | null;
   baseUrl: string | null;
@@ -23,8 +23,8 @@ export interface TenantDto {
 }
 
 export interface ProgramDto {
-  id: string;
-  tenantId: string;
+  id: number;
+  tenantId: number;
   name: string;
   currency: string;
   timezone?: string;
@@ -34,9 +34,9 @@ export interface ProgramDto {
 }
 
 export interface BranchDto {
-  id: string;
-  tenantId: string;
-  parentBranchId: string | null;
+  id: number;
+  tenantId: number;
+  parentBranchId: number | null;
   code: string;
   name: string;
   city?: string;
@@ -44,20 +44,46 @@ export interface BranchDto {
 }
 
 export interface RuleDto {
-  id?: string;
-  tenantId: string;
-  branchId?: string | null;
-  programId: string;
+  id?: number;
+  tenantId: number;
+  branchId?: number | null;
+  programId: number;
+  sponsorId?: number | null;
+  locationId?: number | null;
+  scope: 'PROGRAM' | 'SPONSOR' | 'LOCATION';
   name: string;
   eventType: string;
   rewardType: 'PERCENTAGE' | 'FLAT';
   rewardValue: number;
   isActive: boolean;
+  priority: number;
+}
+
+export interface SponsorDto {
+  id: number;
+  tenantId: number;
+  programId: number;
+  parentSponsorId: number | null;
+  name: string;
+  sponsorCode: string;
+  status: string;
+}
+
+export interface SponsorLocationDto {
+  id: number;
+  tenantId: number;
+  sponsorId: number;
+  locationName: string;
+  locationCode: string;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  status: string;
 }
 
 export interface MemberDto {
-  id?: string;
-  tenantId: string;
+  id?: number;
+  tenantId: number;
   externalUserId: string;
   email?: string | null;
   tier?: string;
@@ -65,12 +91,18 @@ export interface MemberDto {
 }
 
 export interface EventRequest {
-  tenantId: string;
-  branchCode: string;
+  tenantId: number;
+  programId: number;
+  sponsorId?: number;
+  sponsorCode?: string;
+  locationId?: number;
+  locationCode?: string;
+  branchCode?: string;
   memberId: string;
   eventType: string;
   amount: number;
   referenceId?: string;
+  channel?: string;
 }
 
 export interface EventResponse {
@@ -82,9 +114,12 @@ export interface EventResponse {
 export interface ProvisioningResponse {
   tenant: TenantDto;
   program: ProgramDto;
-  tiers: Array<{ id: string; name: string }>;
+  hostSponsor?: SponsorDto;
+  tiers: Array<{ id: number; name: string }>;
   apiKey: string;
 }
+
+const numericId = (value: string | number): number => Number(value);
 
 function getStoredApiKey(): string {
   return localStorage.getItem('tenantApiKey') || '';
@@ -167,8 +202,9 @@ export class SpringBootApiClient {
     );
 
     localStorage.setItem('tenantApiKey', response.apiKey);
-    localStorage.setItem('tenantId', response.tenant.id);
-    localStorage.setItem('programId', response.program.id);
+    localStorage.setItem('tenantId', String(response.tenant.id));
+    localStorage.setItem('programId', String(response.program.id));
+    if (response.hostSponsor) localStorage.setItem('sponsorId', String(response.hostSponsor.id));
 
     return response;
   }
@@ -186,7 +222,7 @@ export class SpringBootApiClient {
     }));
   }
 
-  async getPrograms(tenantId: string): Promise<ProgramDto[]> {
+  async getPrograms(tenantId: number): Promise<ProgramDto[]> {
     return apiFetch<ProgramDto[]>(`/api/programs/${encodeURIComponent(tenantId)}`, { method: 'GET' });
   }
 
@@ -197,13 +233,46 @@ export class SpringBootApiClient {
     });
   }
 
-  async getBranches(tenantId: string): Promise<BranchDto[]> {
+  async getBranches(tenantId: number): Promise<BranchDto[]> {
     return apiFetch<BranchDto[]>(`/api/branches?tenantId=${encodeURIComponent(tenantId)}`, { method: 'GET' });
   }
 
+  async getSponsors(tenantId: number, programId: number): Promise<SponsorDto[]> {
+    return apiFetch<SponsorDto[]>(`/api/sponsors?tenantId=${tenantId}&programId=${programId}`, { method: 'GET' });
+  }
+
+  async createSponsor(payload: {
+    tenantId: number;
+    programId: number;
+    parentSponsorId?: number | null;
+    name: string;
+    sponsorCode: string;
+    status?: string;
+  }): Promise<SponsorDto> {
+    return apiFetch<SponsorDto>('/api/sponsors', { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  async getLocations(tenantId: number, sponsorId: number): Promise<SponsorLocationDto[]> {
+    return apiFetch<SponsorLocationDto[]>(`/api/sponsors/${sponsorId}/locations?tenantId=${tenantId}`, { method: 'GET' });
+  }
+
+  async createLocation(payload: {
+    tenantId: number;
+    sponsorId: number;
+    locationName: string;
+    locationCode: string;
+    address?: string;
+    status?: string;
+  }): Promise<SponsorLocationDto> {
+    return apiFetch<SponsorLocationDto>(`/api/sponsors/${payload.sponsorId}/locations`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async createBranch(payload: {
-    tenantId: string;
-    parentBranchId?: string | null;
+    tenantId: number;
+    parentBranchId?: number | null;
     code: string;
     name: string;
     city?: string;
@@ -215,7 +284,7 @@ export class SpringBootApiClient {
     });
   }
 
-  async getRules(tenantId: string, eventType?: string): Promise<RuleDto[]> {
+  async getRules(tenantId: number, eventType?: string): Promise<RuleDto[]> {
     const qs = new URLSearchParams({ tenantId });
     if (eventType) {
       qs.set('eventType', eventType);
@@ -230,7 +299,7 @@ export class SpringBootApiClient {
     });
   }
 
-  async getMembers(tenantId?: string): Promise<MemberDto[]> {
+  async getMembers(tenantId?: number): Promise<MemberDto[]> {
     if (!tenantId) {
       return apiFetch<MemberDto[]>('/api/members', { method: 'GET' });
     }
@@ -253,7 +322,7 @@ export class SpringBootApiClient {
     });
   }
 
-  async createUser(payload: { id: string; tenantId: string; email?: string; name?: string }): Promise<MemberDto> {
+  async createUser(payload: { id: string; tenantId: number; email?: string; name?: string }): Promise<MemberDto> {
     return this.createMember({
       tenantId: payload.tenantId,
       externalUserId: payload.id,
@@ -286,7 +355,7 @@ export class SpringBootApiClient {
     });
   }
 
-  async getWallet(businessId: string, userId: string): Promise<{ businessId: string; userId: string; availablePoints: number; pendingPoints: number; totalEarnedPoints: number; recentTransactions: any[] }> {
+  async getWallet(businessId: number, userId: string): Promise<{ businessId: string; userId: string; availablePoints: number; pendingPoints: number; totalEarnedPoints: number; recentTransactions: any[] }> {
     const history = await this.getWalletHistory(businessId, userId);
     const availablePoints = history.reduce((sum, item) => {
       const points = Number(item.points || 0);
@@ -303,7 +372,7 @@ export class SpringBootApiClient {
     };
   }
 
-  async getWalletHistory(tenantId: string, memberId: string): Promise<any[]> {
+  async getWalletHistory(tenantId: number, memberId: string): Promise<any[]> {
     return apiFetch<any[]>(`/api/wallet-history/${encodeURIComponent(tenantId)}/${encodeURIComponent(memberId)}`, {
       method: 'GET',
     });
