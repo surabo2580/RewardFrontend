@@ -162,12 +162,81 @@ export interface ProvisioningResponse {
   hostSponsor?: SponsorDto;
   tiers: Array<{ id: number; name: string }>;
   apiKey: string;
+  systemUser?: {
+    email: string;
+    username: string;
+    temporaryPassword: string;
+    role: string;
+  };
 }
 
-const numericId = (value: string | number): number => Number(value);
+export interface LoginRequest {
+  identifier: string;
+  password: string;
+}
+
+export interface SystemUserProfile {
+  userId: number;
+  email: string;
+  username: string;
+  role: string;
+  tenantId: number;
+  programId: number;
+  sponsorId?: number | null;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresInSeconds: number;
+  user: SystemUserProfile;
+}
+
+export interface SelfServeRegisterRequest {
+  businessName: string;
+  slug: string;
+  adminEmail: string;
+  adminPassword: string;
+  programName: string;
+  currency?: string;
+  timezone?: string;
+  earningRate?: number;
+  redemptionRate?: number;
+}
+
+export interface SelfServeRegisterResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresInSeconds: number;
+  user: SystemUserProfile;
+  tenant: TenantDto;
+  program: ProgramDto;
+  hostSponsor?: SponsorDto;
+  onboardingType: 'SELF_SERVE';
+}
+
+export interface EnterpriseInquiryRequest {
+  companyName: string;
+  contactName: string;
+  contactEmail: string;
+  companySize?: string;
+  expectedMonthlyMembers?: number;
+  expectedMonthlyTransactions?: number;
+  notes?: string;
+}
+
+export interface EnterpriseInquiryResponse {
+  onboardingRequestId: number;
+  status: string;
+  message: string;
+}
 
 function getStoredApiKey(): string {
   return localStorage.getItem('tenantApiKey') || '';
+}
+
+function getStoredAccessToken(): string {
+  return localStorage.getItem('dashboardAccessToken') || '';
 }
 
 async function apiFetch<T>(path: string, options: RequestInit = {}, includeApiKey = true): Promise<T> {
@@ -176,7 +245,12 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, includeApiKe
     ...(options.headers as Record<string, string> | undefined),
   };
 
-  if (includeApiKey) {
+  const accessToken = getStoredAccessToken();
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  if (!accessToken && includeApiKey) {
     const apiKey = getStoredApiKey();
     if (apiKey) {
       headers['X-API-Key'] = apiKey;
@@ -220,6 +294,79 @@ export class SpringBootApiClient {
     localStorage.removeItem('tenantApiKey');
   }
 
+  getAccessToken(): string {
+    return getStoredAccessToken();
+  }
+
+  clearAccessToken(): void {
+    localStorage.removeItem('dashboardAccessToken');
+  }
+
+  async login(payload: LoginRequest): Promise<LoginResponse> {
+    const response = await apiFetch<LoginResponse>(
+      '/api/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      false
+    );
+
+    localStorage.setItem('dashboardAccessToken', response.accessToken);
+    localStorage.setItem('tenantId', String(response.user.tenantId));
+    localStorage.setItem('programId', String(response.user.programId));
+    if (response.user.sponsorId) {
+      localStorage.setItem('sponsorId', String(response.user.sponsorId));
+    }
+
+    return response;
+  }
+
+  async getMe(): Promise<SystemUserProfile> {
+    return apiFetch<SystemUserProfile>('/api/auth/me', { method: 'GET' }, false);
+  }
+
+  async registerBusinessSelfServe(payload: SelfServeRegisterRequest): Promise<SelfServeRegisterResponse> {
+    const response = await apiFetch<SelfServeRegisterResponse>(
+      '/api/public/register',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      false
+    );
+
+    localStorage.setItem('dashboardAccessToken', response.accessToken);
+    localStorage.setItem('tenantId', String(response.user.tenantId));
+    localStorage.setItem('programId', String(response.user.programId));
+    if (response.user.sponsorId) {
+      localStorage.setItem('sponsorId', String(response.user.sponsorId));
+    }
+
+    return response;
+  }
+
+  async submitEnterpriseInquiry(payload: EnterpriseInquiryRequest): Promise<EnterpriseInquiryResponse> {
+    return apiFetch<EnterpriseInquiryResponse>(
+      '/api/public/enterprise-inquiries',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      false
+    );
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST' }, false);
+    } catch {
+      // Keep client logout resilient even if backend session cleanup fails.
+    } finally {
+      this.clearAccessToken();
+    }
+  }
+
   async checkHealth(): Promise<{ connected: boolean; message: string; data?: any }> {
     try {
       const data = await apiFetch<any>('/api/health', { method: 'GET' }, false);
@@ -261,7 +408,7 @@ export class SpringBootApiClient {
   async getBusinesses(): Promise<Array<{ id: string; name: string; createdAt: number }>> {
     const tenants = await this.getTenants();
     return tenants.map((t) => ({
-      id: t.id,
+      id: String(t.id),
       name: t.name,
       createdAt: t.createdAt ? new Date(t.createdAt).getTime() : Date.now(),
     }));

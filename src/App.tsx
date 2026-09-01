@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RewardProvider } from './context/RewardContext';
 import { useReward } from './context/RewardContext';
+import { api, SystemUserProfile } from './api/client';
 import { EventDispatcher } from './components/EventDispatcher';
 import { RuleManager } from './components/RuleManager';
 import { WalletView } from './components/WalletView';
@@ -219,7 +220,160 @@ const PlaceholderModule: React.FC<{ title: string; subtitle: string }> = ({ titl
   );
 };
 
-const AppContent: React.FC = () => {
+const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> = ({ onLoggedIn }) => {
+  const [mode, setMode] = useState<'signin' | 'selfServe' | 'enterprise'>('signin');
+
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState('');
+
+  const [businessName, setBusinessName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [programName, setProgramName] = useState('');
+  const [currency, setCurrency] = useState('INR');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerError, setRegisterError] = useState('');
+
+  const [companyName, setCompanyName] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [companySize, setCompanySize] = useState('');
+  const [expectedMembers, setExpectedMembers] = useState('');
+  const [expectedTransactions, setExpectedTransactions] = useState('');
+  const [enterpriseNotes, setEnterpriseNotes] = useState('');
+  const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
+  const [inquiryError, setInquiryError] = useState('');
+  const [inquirySuccess, setInquirySuccess] = useState('');
+
+  const toSlug = (value: string): string =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+  const handleSignIn = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSignInError('');
+    setIsSigningIn(true);
+    try {
+      const response = await api.login({ identifier, password });
+      onLoggedIn(response.user);
+    } catch (submitError: any) {
+      setSignInError(submitError?.message || 'Unable to sign in');
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const handleRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setRegisterError('');
+    setIsRegistering(true);
+    try {
+      const resolvedSlug = toSlug(slug || businessName);
+      const response = await api.registerBusinessSelfServe({
+        businessName,
+        slug: resolvedSlug,
+        adminEmail,
+        adminPassword,
+        programName,
+        currency,
+        earningRate: 10,
+        redemptionRate: 1,
+      });
+      onLoggedIn(response.user);
+    } catch (submitError: any) {
+      setRegisterError(submitError?.message || 'Unable to register business');
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const handleEnterpriseInquiry = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setInquiryError('');
+    setInquirySuccess('');
+    setIsSubmittingInquiry(true);
+    try {
+      const response = await api.submitEnterpriseInquiry({
+        companyName,
+        contactName,
+        contactEmail,
+        companySize: companySize || undefined,
+        expectedMonthlyMembers: expectedMembers ? Number(expectedMembers) : undefined,
+        expectedMonthlyTransactions: expectedTransactions ? Number(expectedTransactions) : undefined,
+        notes: enterpriseNotes || undefined,
+      });
+      setInquirySuccess(`Request submitted. Onboarding ID: ${response.onboardingRequestId}`);
+      setMode('signin');
+      setIdentifier(contactEmail);
+    } catch (submitError: any) {
+      setInquiryError(submitError?.message || 'Unable to submit enterprise inquiry');
+    } finally {
+      setIsSubmittingInquiry(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0f18] text-slate-100 grid place-items-center px-4 py-10">
+      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900/90 p-6 sm:p-8 shadow-2xl shadow-black/40">
+        <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Benevo Dashboard</div>
+        <h1 className="text-2xl font-semibold mt-2">Access Portal</h1>
+        <p className="text-sm text-slate-400 mt-1">Sign in, self-register your business, or request enterprise onboarding.</p>
+
+        <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
+          <button type="button" onClick={() => setMode('signin')} className={`rounded-md px-2 py-2 border ${mode === 'signin' ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200' : 'border-slate-700 text-slate-300'}`}>Sign In</button>
+          <button type="button" onClick={() => setMode('selfServe')} className={`rounded-md px-2 py-2 border ${mode === 'selfServe' ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200' : 'border-slate-700 text-slate-300'}`}>Register</button>
+          <button type="button" onClick={() => setMode('enterprise')} className={`rounded-md px-2 py-2 border ${mode === 'enterprise' ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200' : 'border-slate-700 text-slate-300'}`}>Enterprise</button>
+        </div>
+
+        {mode === 'signin' && (
+          <form className="mt-6 space-y-3" onSubmit={handleSignIn}>
+            <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Email or username" required />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Password" required />
+            <button type="submit" disabled={isSigningIn} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isSigningIn ? 'Signing In...' : 'Sign In'}</button>
+            {signInError && <p className="text-xs text-rose-400">{signInError}</p>}
+            {inquirySuccess && <p className="text-xs text-emerald-400">{inquirySuccess}</p>}
+          </form>
+        )}
+
+        {mode === 'selfServe' && (
+          <form className="mt-6 space-y-3" onSubmit={handleRegister}>
+            <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Business name" required />
+            <input value={slug} onChange={(e) => setSlug(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Subdomain slug (e.g. indianhotel)" required />
+            <input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} type="email" className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Admin email" required />
+            <input value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} type="password" minLength={8} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Set admin password (min 8 chars)" required />
+            <input value={programName} onChange={(e) => setProgramName(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Program name" required />
+            <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Currency" required />
+            <button type="submit" disabled={isRegistering} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isRegistering ? 'Registering...' : 'Create Business & Sign In'}</button>
+            {registerError && <p className="text-xs text-rose-400">{registerError}</p>}
+          </form>
+        )}
+
+        {mode === 'enterprise' && (
+          <form className="mt-6 space-y-3" onSubmit={handleEnterpriseInquiry}>
+            <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Company name" required />
+            <input value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Primary contact name" required />
+            <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} type="email" className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Contact email" required />
+            <input value={companySize} onChange={(e) => setCompanySize(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Company size (optional)" />
+            <div className="grid grid-cols-2 gap-2">
+              <input value={expectedMembers} onChange={(e) => setExpectedMembers(e.target.value)} type="number" min={0} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Monthly members" />
+              <input value={expectedTransactions} onChange={(e) => setExpectedTransactions(e.target.value)} type="number" min={0} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100" placeholder="Monthly txns" />
+            </div>
+            <textarea value={enterpriseNotes} onChange={(e) => setEnterpriseNotes(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 h-24" placeholder="Custom pricing / compliance requirements" />
+            <button type="submit" disabled={isSubmittingInquiry} className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white px-3 py-2 text-sm font-semibold">{isSubmittingInquiry ? 'Submitting...' : 'Request Enterprise Onboarding'}</button>
+            {inquiryError && <p className="text-xs text-rose-400">{inquiryError}</p>}
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promise<void> }> = ({ authUser, onLogout }) => {
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
 
@@ -281,8 +435,8 @@ const AppContent: React.FC = () => {
 
         <div className="mt-4 px-2 pb-4 border-b border-slate-800">
           <div className="w-11 h-11 rounded-full bg-slate-700 text-slate-100 grid place-items-center font-semibold">SD</div>
-          <div className="text-sm font-medium text-slate-200 mt-2">Suraj Das</div>
-          <div className="text-xs text-slate-500">Platform Workspace</div>
+          <div className="text-sm font-medium text-slate-200 mt-2">{authUser.username}</div>
+          <div className="text-xs text-slate-500">{authUser.email}</div>
         </div>
 
         <nav className="mt-4 space-y-1.5 overflow-auto">
@@ -371,6 +525,13 @@ const AppContent: React.FC = () => {
             </button>
             <button type="button" className="w-8 h-8 rounded-md border border-slate-700 bg-slate-800 text-slate-200 grid place-items-center">
               <UserCircle2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => void onLogout()}
+              className="px-2 py-1 rounded border border-slate-700 bg-slate-800 text-xs text-slate-200 hover:text-white"
+            >
+              Logout
             </button>
           </div>
         </header>
@@ -464,9 +625,43 @@ const AppContent: React.FC = () => {
 };
 
 export function App() {
+  const [authUser, setAuthUser] = useState<SystemUserProfile | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        if (!api.getAccessToken()) {
+          setAuthUser(null);
+          return;
+        }
+        const me = await api.getMe();
+        setAuthUser(me);
+      } catch {
+        api.clearAccessToken();
+        setAuthUser(null);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    })();
+  }, []);
+
+  const handleLogout = async () => {
+    await api.logout();
+    setAuthUser(null);
+  };
+
+  if (isCheckingSession) {
+    return <div className="min-h-screen bg-[#0a0f18]" />;
+  }
+
+  if (!authUser) {
+    return <LoginScreen onLoggedIn={setAuthUser} />;
+  }
+
   return (
     <RewardProvider>
-      <AppContent />
+      <AppContent authUser={authUser} onLogout={handleLogout} />
     </RewardProvider>
   );
 }

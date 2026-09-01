@@ -173,7 +173,7 @@ export const useRewardStore = create<RewardStoreState>()(
         try {
           const backendTenants = await apiClient.getTenants();
           const nextBusinesses: Business[] = backendTenants.map((t) => ({
-            id: t.id,
+            id: String(t.id),
             name: t.name,
             createdAt: t.createdAt ? new Date(t.createdAt).getTime() : Date.now(),
           }));
@@ -186,7 +186,7 @@ export const useRewardStore = create<RewardStoreState>()(
             const nextUsers: User[] = [];
 
             if (selectedBusinessId) {
-              void apiClient.getMembers(selectedBusinessId).then((members) => {
+              void apiClient.getMembers(Number(selectedBusinessId)).then((members) => {
                 const mappedUsers: User[] = members.map((m) => ({
                   id: m.externalUserId,
                   name: m.email || m.externalUserId,

@@ -23,6 +23,7 @@ export const BusinessUserManager: React.FC = () => {
   const [earningRate, setEarningRate] = useState('10');
   const [redemptionRate, setRedemptionRate] = useState('1');
   const [provisionError, setProvisionError] = useState('');
+  const [bootstrapCredentials, setBootstrapCredentials] = useState<{ email: string; username: string; temporaryPassword: string } | null>(null);
 
   const [programs, setPrograms] = useState<ProgramDto[]>([]);
   const [branches, setBranches] = useState<BranchDto[]>([]);
@@ -53,7 +54,7 @@ export const BusinessUserManager: React.FC = () => {
     void (async () => {
       try {
         setProgramLoadError('');
-        const data = await api.getPrograms(selectedBusinessId);
+        const data = await api.getPrograms(Number(selectedBusinessId));
         setPrograms(data);
         if (data.length > 0) {
           localStorage.setItem('programId', data[0].id);
@@ -65,7 +66,7 @@ export const BusinessUserManager: React.FC = () => {
 
       try {
         setBranchLoadError('');
-        const data = await api.getBranches(selectedBusinessId);
+        const data = await api.getBranches(Number(selectedBusinessId));
         setBranches(data);
         if (!selectedBranchCode && data[0]?.code) {
           localStorage.setItem('branchCode', data[0].code);
@@ -93,7 +94,8 @@ export const BusinessUserManager: React.FC = () => {
       });
 
       await refreshDirectory();
-      setSelectedBusinessId(response.tenant.id);
+      setSelectedBusinessId(String(response.tenant.id));
+      setBootstrapCredentials(response.systemUser || null);
 
       setTenantName('');
       setTenantSlug('');
@@ -114,7 +116,7 @@ export const BusinessUserManager: React.FC = () => {
 
     try {
       const created = await api.createBranch({
-        tenantId: selectedBusinessId,
+        tenantId: Number(selectedBusinessId),
         parentBranchId: parentBranchId || null,
         code: branchCode.trim().toUpperCase(),
         name: branchName.trim(),
@@ -127,7 +129,7 @@ export const BusinessUserManager: React.FC = () => {
       setBranchName('');
       setBranchCity('');
       setParentBranchId('');
-      setBranches(await api.getBranches(selectedBusinessId));
+      setBranches(await api.getBranches(Number(selectedBusinessId)));
     } catch (error: any) {
       setBranchError(error.message || 'Unable to create branch');
     }
@@ -140,7 +142,7 @@ export const BusinessUserManager: React.FC = () => {
 
     try {
       await api.createMember({
-        tenantId: selectedBusinessId,
+        tenantId: Number(selectedBusinessId),
         externalUserId: memberId.trim(),
         email: memberEmail.trim() || null,
         tier: memberTier,
@@ -171,6 +173,14 @@ export const BusinessUserManager: React.FC = () => {
           <span>API key loaded:</span>
           <span className="font-mono text-emerald-300">{tenantApiKey ? `${tenantApiKey.slice(0, 8)}...` : 'Not set'}</span>
         </div>
+        {bootstrapCredentials && (
+          <div className="mt-3 text-xs text-cyan-200 bg-cyan-950/30 border border-cyan-700/40 rounded-lg p-3">
+            <div className="font-semibold">System user created for dashboard login</div>
+            <div className="font-mono mt-1">email: {bootstrapCredentials.email}</div>
+            <div className="font-mono">username: {bootstrapCredentials.username}</div>
+            <div className="font-mono">temporaryPassword: {bootstrapCredentials.temporaryPassword}</div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
