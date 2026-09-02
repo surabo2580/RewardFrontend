@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="0b01261a-9272-4b9a-be89-f1ad3c68267f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/dist/assets/index-CVyvBGxj.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/assets/index-DimOxAWn.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/assets/index-DW-isa_Z.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/assets/index-ymnCKUP1.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/client.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/client.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/ApiSandbox.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/ApiSandbox.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/BusinessUserManager.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/BusinessUserManager.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/EventDispatcher.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/EventDispatcher.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/WalletView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/WalletView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/context/RewardContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/RewardContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/store/useRewardStore.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/store/useRewardStore.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "surabo2580"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/surabo2580/RewardFrontend.git",
+    "accountId": "b049aa77-efea-458f-81ba-c8d2c67c88a8"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 4,
+  "fromUser": false
+}]]></component>
+  <component name="ProjectId" id="3IGCGcHXKQQCy0eadstTyDUaNCM" />
+  <component name="ProjectViewState">
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "second__phase__scalability",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/surajdas/AndroidStudioProjects/frontend/RewardFrontend",
+    "settings.editor.selected.configurable": "com.google.gct.login2.settings.GoogleLoginApplicationSettingsConfigurableProvider"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="0b01261a-9272-4b9a-be89-f1ad3c68267f" name="Changes" comment="" />
+      <created>1787381425261</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1787381425261</updated>
+    </task>
+    <servers />
+  </component>
+</project>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useReward } from '../context/RewardContext';
 import { api } from '../api/client';
 import { 
@@ -36,24 +36,30 @@ export const ApiSandbox: React.FC = () => {
     message: '',
   });
 
+  const getDefaultEventPayload = () => ({
+    tenantId: Number(selectedBusinessId || localStorage.getItem('tenantId') || 0),
+    programId: Number(localStorage.getItem('programId') || 0),
+    sponsorId: Number(localStorage.getItem('sponsorId') || 0),
+    branchCode: 'DEFAULT_MAIN',
+    memberId: selectedUserId || localStorage.getItem('memberId') || '',
+    eventType: 'PURCHASE',
+    amount: 5000,
+    referenceId: 'ORDER-1001',
+    channel: 'POS',
+  });
+
   // Events API state (New architecture: tenantId, memberId, eventType, amount, referenceId)
   const [eventPayload, setEventPayload] = useState<string>(
     JSON.stringify(
-      {
-        tenantId: selectedBusinessId || 'taj',
-        memberId: selectedUserId || 'user123',
-        eventType: 'PURCHASE',
-        amount: 150,
-        referenceId: 'ORD-9842',
-      },
+      getDefaultEventPayload(),
       null,
       2
     )
   );
 
   // Wallet API state
-  const [walletParamBiz, setWalletParamBiz] = useState<string>(selectedBusinessId);
-  const [walletParamUser, setWalletParamUser] = useState<string>(selectedUserId);
+  const [walletParamBiz, setWalletParamBiz] = useState<string>(selectedBusinessId || localStorage.getItem('tenantId') || '');
+  const [walletParamUser, setWalletParamUser] = useState<string>(selectedUserId || localStorage.getItem('memberId') || '');
 
   // Execution result
   const [apiResponse, setApiResponse] = useState<{
@@ -72,13 +78,18 @@ export const ApiSandbox: React.FC = () => {
     setHealthStatus({ checked: true, connected: health.connected, message: health.message });
   };
 
+  const apiKey = localStorage.getItem('tenantApiKey') || '';
+
   const curlEvents = `curl -i -X POST ${backendUrl}/api/events \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: ${apiKey}" \\
   -d '${eventPayload.replace(/\n\s*/g, ' ')}'`;
 
-  const curlWallet = `curl -i -X GET ${backendUrl}/api/wallet-history/${walletParamBiz}/${walletParamUser}`;
+  const curlWallet = `curl -i -X GET ${backendUrl}/api/wallet-history/${walletParamBiz}/${walletParamUser} \\
+  -H "X-API-Key: ${apiKey}"`;
   const curlHealth = `curl -i -X GET ${backendUrl}/api/health`;
-  const curlTenants = `curl -i -X GET ${backendUrl}/api/tenants`;
+  const curlTenants = `curl -i -X GET ${backendUrl}/api/tenants \\
+  -H "X-API-Key: ${apiKey}"`;
 
   const currentCurl =
     activeEndpoint === 'events'
@@ -104,6 +115,34 @@ export const ApiSandbox: React.FC = () => {
       try {
         if (activeEndpoint === 'events') {
           const parsed = JSON.parse(eventPayload);
+
+          const missingFields: string[] = [];
+          if (!parsed.tenantId) missingFields.push('tenantId');
+          if (!parsed.programId) missingFields.push('programId');
+          if (!parsed.sponsorId) missingFields.push('sponsorId');
+          if (!parsed.memberId) missingFields.push('memberId');
+          if (!parsed.eventType) missingFields.push('eventType');
+          if (parsed.amount === undefined || parsed.amount === null || Number.isNaN(Number(parsed.amount))) {
+            missingFields.push('amount');
+          }
+
+          if (missingFields.length > 0) {
+            const elapsed = Math.round(performance.now() - start);
+            setApiResponse({
+              status: 400,
+              statusText: 'Bad Request',
+              durationMs: elapsed,
+              headers: { 'content-type': 'application/json' },
+              body: {
+                error: 'Missing or invalid required fields',
+                message: `Please provide valid values for: ${missingFields.join(', ')}`,
+                requiredEventFields: ['tenantId', 'programId', 'sponsorId', 'memberId', 'eventType', 'amount'],
+              },
+            });
+            setIsExecuting(false);
+            return;
+          }
+
           const result = await api.postEvent(parsed);
           const elapsed = Math.round(performance.now() - start);
 
@@ -162,15 +201,21 @@ export const ApiSandbox: React.FC = () => {
         }
       } catch (err: any) {
         const elapsed = Math.round(performance.now() - start);
+
+        const status = typeof err?.status === 'number' ? err.status : 400;
+        const statusText = err?.statusText || (status >= 500 ? 'Internal Server Error' : 'Bad Request');
+        const errorBody = err?.body && typeof err.body === 'object'
+          ? err.body
+          : {
+              error: err?.message || 'Request failed',
+            };
+
         setApiResponse({
-          status: 400,
-          statusText: 'Bad Request / Validation Error',
+          status,
+          statusText,
           durationMs: elapsed,
           headers: { 'content-type': 'application/json' },
-          body: {
-            error: 'Spring Boot Request Failed',
-            message: err.message,
-          },
+          body: errorBody,
         });
       } finally {
         setIsExecuting(false);
@@ -182,9 +227,9 @@ export const ApiSandbox: React.FC = () => {
           try {
             const parsed = JSON.parse(eventPayload);
             const result = processEvent({
-              userId: parsed.userId,
-              businessId: parsed.businessId,
-              event: parsed.eventType || parsed.event,
+              userId: parsed.memberId || parsed.userId,
+              businessId: parsed.tenantId || parsed.businessId,
+              event: parsed.eventType,
               properties: {
                 amount: parsed.amount || parsed.properties?.amount || 0,
                 ...(parsed.properties || {}),
@@ -399,12 +444,15 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        businessId: selectedBusinessId || 'taj',
-                        userId: selectedUserId || 'user123',
-                        event: 'PURCHASE',
-                        amount: 150.0,
-                        referenceId: 'ORD-9842',
-                        properties: { amount: 150.0 }
+                        tenantId: Number(selectedBusinessId || localStorage.getItem('tenantId') || 0),
+                        programId: Number(localStorage.getItem('programId') || 0),
+                        sponsorId: Number(localStorage.getItem('sponsorId') || 0),
+                        branchCode: 'DEFAULT_MAIN',
+                        memberId: selectedUserId || localStorage.getItem('memberId') || '',
+                        eventType: 'PURCHASE',
+                        amount: 5000,
+                        referenceId: 'ORDER-1001',
+                        channel: 'POS',
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-indigo-300 rounded border border-slate-700"
                     >
@@ -413,12 +461,15 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        businessId: selectedBusinessId || 'taj',
-                        userId: selectedUserId || 'user123',
-                        event: 'SIGNUP',
-                        amount: 0.0,
+                        tenantId: Number(selectedBusinessId || localStorage.getItem('tenantId') || 0),
+                        programId: Number(localStorage.getItem('programId') || 0),
+                        sponsorId: Number(localStorage.getItem('sponsorId') || 0),
+                        branchCode: 'DEFAULT_MAIN',
+                        memberId: selectedUserId || localStorage.getItem('memberId') || '',
+                        eventType: 'SIGNUP',
+                        amount: 0,
                         referenceId: 'USER-INIT-01',
-                        properties: { channel: 'organic' }
+                        channel: 'POS',
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-emerald-300 rounded border border-slate-700"
                     >
@@ -427,16 +478,26 @@ export const ApiSandbox: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEventPayload(JSON.stringify({
-                        businessId: selectedBusinessId || 'taj',
-                        userId: selectedUserId || 'user123',
-                        event: 'REFERRAL',
-                        amount: 0.0,
+                        tenantId: Number(selectedBusinessId || localStorage.getItem('tenantId') || 0),
+                        programId: Number(localStorage.getItem('programId') || 0),
+                        sponsorId: Number(localStorage.getItem('sponsorId') || 0),
+                        branchCode: 'DEFAULT_MAIN',
+                        memberId: selectedUserId || localStorage.getItem('memberId') || '',
+                        eventType: 'REFERRAL',
+                        amount: 0,
                         referenceId: 'REF-7721',
-                        properties: { friendUserId: 'user456' }
+                        channel: 'POS',
                       }, null, 2))}
                       className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-amber-300 rounded border border-slate-700"
                     >
                       Referral
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEventPayload(JSON.stringify(getDefaultEventPayload(), null, 2))}
+                      className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-cyan-300 rounded border border-slate-700"
+                    >
+                      Reset
                     </button>
                   </div>
                 </div>
@@ -454,7 +515,7 @@ export const ApiSandbox: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-slate-300 mb-1">
-                      &#123;businessId&#125;
+                      &#123;tenantId&#125;
                     </label>
                     <input
                       type="text"
@@ -465,7 +526,7 @@ export const ApiSandbox: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-xs text-slate-300 mb-1">
-                      &#123;userId&#125;
+                      &#123;memberId&#125;
                     </label>
                     <input
                       type="text"
