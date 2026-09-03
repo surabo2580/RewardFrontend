@@ -55,8 +55,12 @@ export interface RuleDto {
   eventType: string;
   rewardType: 'PERCENTAGE' | 'FLAT';
   rewardValue: number;
+  redemptionEarnRate?: number | null;
+  recognitionEarnRate?: number | null;
   isActive: boolean;
   priority: number;
+  validFrom?: string | null;
+  validUntil?: string | null;
 }
 
 export interface SponsorDto {
@@ -153,6 +157,32 @@ export interface EventRequest {
 export interface EventResponse {
   success: boolean;
   pointsAwarded: number;
+  recognitionPointsAwarded?: number;
+  policyId?: number | null;
+  policyScope?: string | null;
+  currentTier?: string | null;
+  tierUpgraded?: boolean;
+  message: string;
+}
+
+export interface RedemptionRequest {
+  tenantId: number;
+  programId: number;
+  sponsorId: number;
+  locationId?: number;
+  memberId: string;
+  pointsToRedeem: number;
+  referenceId: string;
+  channel?: string;
+}
+
+export interface RedemptionResponse {
+  success: boolean;
+  status: 'SUCCESS' | 'ALREADY_PROCESSED' | 'MEMBER_NOT_FOUND' | 'ACCOUNT_NOT_FOUND' | 'INSUFFICIENT_BALANCE';
+  transactionId?: number | null;
+  pointsRedeemed: number;
+  discountAmount: string;
+  remainingBalance: number;
   message: string;
 }
 
@@ -661,6 +691,13 @@ export class SpringBootApiClient {
     });
   }
 
+  async redeemPoints(payload: RedemptionRequest): Promise<RedemptionResponse> {
+    return apiFetch<RedemptionResponse>('/api/transactions/redeem', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async createPartnerMembership(payload: {
     tenantId: number;
     sponsorId: number;
@@ -709,6 +746,7 @@ export class SpringBootApiClient {
     const history = await this.getWalletHistory(businessId, userId);
     const availablePoints = history.reduce((sum, item) => {
       const points = Number(item.points || 0);
+      if (item.accountType === 'RECOGNITION') return sum;
       return item.entryType === 'DEBIT' ? sum - points : sum + points;
     }, 0);
 
