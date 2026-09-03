@@ -8,6 +8,7 @@ import { WalletView } from './components/WalletView';
 import { TransactionLedger } from './components/TransactionLedger';
 import { ApiSandbox } from './components/ApiSandbox';
 import { BusinessUserManager } from './components/BusinessUserManager';
+import { MemberManager } from './components/MemberManager';
 import { KotlinSourceViewer } from './components/KotlinSourceViewer';
 import { RepoArchitectureGuide } from './components/RepoArchitectureGuide';
 import { SponsorManager } from './components/SponsorManager';
@@ -51,6 +52,7 @@ type AppTab =
   | 'kotlin'
   | 'repos'
   | 'offers'
+  | 'members'
   | 'sponsors'
   | 'partnerMemberships'
   | 'bits'
@@ -69,9 +71,9 @@ const SidebarItem: React.FC<{
     <button
       type="button"
       onClick={() => setActiveTab(tab)}
-      className={`w-full group flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all ${
+      className={`w-full group flex items-center justify-between px-3 py-2.5 rounded-md border-l-2 transition-colors ${
         isActive
-          ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-100 shadow-[inset_0_0_0_1px_rgba(6,182,212,0.25)]'
+          ? 'bg-cyan-500/10 border-cyan-400 text-cyan-100'
           : 'bg-transparent border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/70'
       }`}
     >
@@ -85,6 +87,72 @@ const SidebarItem: React.FC<{
         </span>
       )}
     </button>
+  );
+};
+
+const SidebarSection: React.FC<{ label: string }> = ({ label }) => (
+  <div className="pt-5 pb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+    {label}
+  </div>
+);
+
+const SidebarMenu: React.FC<{
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: Array<{ label: string; icon: React.ComponentType<{ className?: string }>; tab: AppTab }>;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
+  variant?: 'sidebar' | 'header';
+}> = ({ label, icon: Icon, items, activeTab, setActiveTab, variant = 'sidebar' }) => {
+  const [isOpen, setIsOpen] = useState(items.some((item) => item.tab === activeTab));
+  const containsActiveTab = items.some((item) => item.tab === activeTab);
+  const isHeaderMenu = variant === 'header';
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={() => setIsOpen((isOpen) => !isOpen)}
+        className={`${isHeaderMenu ? 'min-w-[128px] border' : 'w-full border-l-2'} flex items-center justify-between px-3 py-2.5 rounded-md transition-colors ${
+          containsActiveTab
+            ? 'border-cyan-400 bg-cyan-500/10 text-cyan-100'
+            : `${isHeaderMenu ? 'border-slate-700 bg-slate-800/80' : 'border-transparent'} text-slate-400 hover:text-slate-200 hover:bg-slate-800/70`
+        }`}
+        aria-expanded={isOpen}
+      >
+        <span className="flex items-center gap-2.5">
+          <Icon className={`w-4 h-4 ${containsActiveTab ? 'text-cyan-300' : 'text-slate-500'}`} />
+          <span className="text-sm font-medium">{label}</span>
+        </span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className={`${isHeaderMenu ? 'absolute right-0 top-[calc(100%+8px)] z-50 w-52 rounded-md border border-slate-700 bg-slate-900 p-1.5 shadow-xl shadow-black/40' : 'ml-5 pl-3 border-l border-slate-700/70'} space-y-1`}>
+          {items.map(({ label: itemLabel, icon: ItemIcon, tab }) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab);
+                  if (isHeaderMenu) setIsOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left text-sm transition-colors ${
+                  isActive
+                    ? 'bg-slate-800 text-cyan-200'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                <ItemIcon className="w-3.5 h-3.5" />
+                {itemLabel}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -545,6 +613,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
     if (activeTab === 'offers') {
       return <PlaceholderModule title="Offers" subtitle="Offer orchestration console for campaigns and dynamic rewards." />;
     }
+    if (activeTab === 'members') return <MemberManager />;
     if (activeTab === 'sponsors') {
       return <SponsorManager />;
     }
@@ -569,7 +638,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
               <Gift className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.16em] text-slate-500">powered by</div>
+              <div className="text-xs uppercase tracking-[0.16em] text-slate-500">loyalty workspace</div>
               <div className="font-semibold text-slate-100 tracking-wide">BENEVO</div>
             </div>
           </div>
@@ -581,36 +650,34 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
           <div className="text-xs text-slate-500">{authUser.email}</div>
         </div>
 
-        <nav className="mt-4 space-y-1.5 overflow-auto">
+        <nav className="mt-2 space-y-1 overflow-auto" aria-label="Benevo workspace navigation">
+          <SidebarSection label="Workspace" />
           <SidebarItem icon={Grid2x2} label="Dashboard" tab="dashboard" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={Megaphone} label="Offers" tab="offers" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={Network} label="Sponsors" tab="sponsors" activeTab={activeTab} setActiveTab={setActiveTab} count="85" />
-          <SidebarItem icon={Users} label="Partner Memberships" tab="partnerMemberships" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={Radar} label="BITs" tab="bits" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={Layers3} label="Reconciliation" tab="reconciliation" activeTab={activeTab} setActiveTab={setActiveTab} />
 
-          <div className="my-3 border-t border-slate-700/80" />
+          <SidebarSection label="Network" />
+          <SidebarItem icon={Network} label="Partner Network" tab="sponsors" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={Users} label="Partner Links" tab="partnerMemberships" activeTab={activeTab} setActiveTab={setActiveTab} />
 
-          <SidebarItem icon={Terminal} label="API Console" tab="api" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarSection label="Operations" />
+          <SidebarItem icon={Radar} label="Activity Events" tab="bits" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={Send} label="Process Transaction" tab="events" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={History} label="Transaction History" tab="transactions" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={Layers3} label="Settlements" tab="reconciliation" activeTab={activeTab} setActiveTab={setActiveTab} />
+
+          <SidebarSection label="Platform" />
+          <SidebarItem icon={Building2} label="Business Setup" tab="entities" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={Terminal} label="Developer Console" tab="api" activeTab={activeTab} setActiveTab={setActiveTab} />
           <SidebarItem icon={Zap} label="Kotlin Source" tab="kotlin" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={GitBranch} label="2-Repos" tab="repos" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={Wallet} label="Wallet" tab="wallet" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={Send} label="Events" tab="events" activeTab={activeTab} setActiveTab={setActiveTab} />
-
-          <div className="my-3 border-t border-slate-700/50" />
-
-          <SidebarItem icon={Building2} label="Tenant Setup" tab="entities" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={SlidersHorizontal} label="Rules" tab="rules" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <SidebarItem icon={History} label="Audit Transactions" tab="transactions" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={GitBranch} label="Architecture" tab="repos" activeTab={activeTab} setActiveTab={setActiveTab} />
         </nav>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur px-3 sm:px-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <span className="text-xs text-slate-500 hidden md:inline">DashBoard Home</span>
+            <span className="text-xs text-slate-500 hidden md:inline">Benevo Workspace</span>
             <ChevronDown className="w-3 h-3 text-slate-600 hidden md:inline" />
-            <span className="px-2 py-1 rounded bg-slate-800 text-[11px] tracking-wide text-slate-300">GRAVTY STYLE</span>
+            <span className="px-2 py-1 rounded bg-slate-800 text-[11px] tracking-wide text-cyan-200">LOYALTY OPERATIONS</span>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -627,6 +694,22 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="relative">
+                <SidebarMenu
+                  label="Loyalty"
+                  icon={Gift}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  variant="header"
+                  items={[
+                    { label: 'Members', icon: Users, tab: 'members' },
+                    { label: 'Offers', icon: Megaphone, tab: 'offers' },
+                    { label: 'Reward Rules', icon: SlidersHorizontal, tab: 'rules' },
+                    { label: 'Wallets', icon: Wallet, tab: 'wallet' },
+                  ]}
+                />
               </div>
 
               <div className="flex items-center gap-1.5 px-2 py-1 rounded border border-slate-700 bg-slate-800/80">
