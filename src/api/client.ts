@@ -165,6 +165,29 @@ export interface EventResponse {
   message: string;
 }
 
+export interface OfferDto {
+  id: number;
+  tenantId: number;
+  programId: number;
+  name: string;
+  description?: string | null;
+  scope: 'PROGRAM' | 'SPONSOR' | 'LOCATION' | 'PARENT' | 'PARTNER';
+  sponsorId?: number | null;
+  locationId?: number | null;
+  offerType: 'MULTIPLIER' | 'BONUS_POINTS' | 'HYBRID';
+  multiplier: number;
+  bonusPoints: number;
+  minSpend: number;
+  minTierRank: number;
+  eligibleDays?: string | null;
+  maxUsesPerMember?: number | null;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+}
+
+export type OfferCreateRequest = Omit<OfferDto, 'id'>;
+
 export interface RedemptionRequest {
   tenantId: number;
   programId: number;
@@ -630,6 +653,17 @@ export class SpringBootApiClient {
 
   async createRule(payload: RuleDto): Promise<RuleDto> {
     return apiFetch<RuleDto>('/api/rules', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getOffers(tenantId: number, programId: number): Promise<OfferDto[]> {
+    return apiFetch<OfferDto[]>(`/api/offers?tenantId=${encodeURIComponent(tenantId)}&programId=${encodeURIComponent(programId)}`, { method: 'GET' });
+  }
+
+  async createOffer(payload: OfferCreateRequest): Promise<OfferDto> {
+    return apiFetch<OfferDto>('/api/offers', {
       method: 'POST',
       body: JSON.stringify(payload),
     });

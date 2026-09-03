@@ -9,6 +9,7 @@ import { TransactionLedger } from './components/TransactionLedger';
 import { ApiSandbox } from './components/ApiSandbox';
 import { BusinessUserManager } from './components/BusinessUserManager';
 import { MemberManager } from './components/MemberManager';
+import { OfferManager } from './components/OfferManager';
 import { KotlinSourceViewer } from './components/KotlinSourceViewer';
 import { RepoArchitectureGuide } from './components/RepoArchitectureGuide';
 import { SponsorManager } from './components/SponsorManager';
@@ -610,9 +611,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
     if (activeTab === 'entities') return <BusinessUserManager />;
     if (activeTab === 'kotlin') return <KotlinSourceViewer />;
     if (activeTab === 'repos') return <RepoArchitectureGuide />;
-    if (activeTab === 'offers') {
-      return <PlaceholderModule title="Offers" subtitle="Offer orchestration console for campaigns and dynamic rewards." />;
-    }
+    if (activeTab === 'offers') return <OfferManager />;
     if (activeTab === 'members') return <MemberManager />;
     if (activeTab === 'sponsors') {
       return <SponsorManager />;
