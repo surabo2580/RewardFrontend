@@ -169,10 +169,14 @@ export interface OfferDto {
   id: number;
   tenantId: number;
   programId: number;
+  offerCode: string;
   name: string;
   description?: string | null;
+  category: 'AWARD' | 'REWARD' | 'PRIVILEGE' | 'DEAL';
+  status: 'DRAFT' | 'SCHEDULED' | 'LAUNCHED' | 'PAUSED' | 'EXPIRED' | 'ARCHIVED';
   scope: 'PROGRAM' | 'SPONSOR' | 'LOCATION' | 'PARENT' | 'PARTNER';
   sponsorId?: number | null;
+  sponsorIds: number[];
   locationId?: number | null;
   offerType: 'MULTIPLIER' | 'BONUS_POINTS' | 'HYBRID';
   multiplier: number;
@@ -181,12 +185,28 @@ export interface OfferDto {
   minTierRank: number;
   eligibleDays?: string | null;
   maxUsesPerMember?: number | null;
+  maxTotalClaims?: number | null;
+  totalClaimsCount: number;
+  isMto: boolean;
+  isFeatured: boolean;
+  pointsRequired: number;
+  benefitCode?: string | null;
+  targetTierId?: number | null;
+  discountType?: 'PERCENTAGE' | 'FIXED_AMOUNT' | null;
+  discountValue?: number | null;
+  promoCode?: string | null;
   startDate: string;
   endDate: string;
   isActive: boolean;
 }
 
 export type OfferCreateRequest = Omit<OfferDto, 'id'>;
+
+export interface OfferImportSummary {
+  imported: number;
+  failed: number;
+  errors: string[];
+}
 
 export interface RedemptionRequest {
   tenantId: number;
@@ -667,6 +687,45 @@ export class SpringBootApiClient {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  }
+
+  async updateOfferStatus(offerId: number, status: OfferDto['status']): Promise<OfferDto> {
+    return apiFetch<OfferDto>(`/api/offers/${encodeURIComponent(offerId)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async toggleOfferFeatured(offerId: number): Promise<OfferDto> {
+    return apiFetch<OfferDto>(`/api/offers/${encodeURIComponent(offerId)}/featured`, {
+      method: 'PATCH',
+    });
+  }
+
+  async importOfferCampaigns(programId: number, file: File): Promise<OfferImportSummary> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${apiBaseUrl}/api/offers/import-campaigns?programId=${encodeURIComponent(programId)}`, {
+      method: 'POST',
+      headers: getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : { 'X-API-Key': getStoredApiKey() },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+    return data as OfferImportSummary;
+  }
+
+  async importOfferVouchers(file: File): Promise<OfferImportSummary> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${apiBaseUrl}/api/offers/import-vouchers`, {
+      method: 'POST',
+      headers: getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : { 'X-API-Key': getStoredApiKey() },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+    return data as OfferImportSummary;
   }
 
   async getMembers(tenantId?: number): Promise<MemberDto[]> {
