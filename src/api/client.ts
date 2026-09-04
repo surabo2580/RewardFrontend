@@ -165,19 +165,37 @@ export interface EventResponse {
   message: string;
 }
 
+export interface OfferKpiTarget {
+  kpiCode: string;
+  targetValue: number;
+}
+
 export interface OfferDto {
   id: number;
   tenantId: number;
   programId: number;
   offerCode: string;
   name: string;
+  subtitle?: string | null;
   description?: string | null;
   category: 'AWARD' | 'REWARD' | 'PRIVILEGE' | 'DEAL';
   status: 'DRAFT' | 'SCHEDULED' | 'LAUNCHED' | 'PAUSED' | 'EXPIRED' | 'ARCHIVED';
   scope: 'PROGRAM' | 'SPONSOR' | 'LOCATION' | 'PARENT' | 'PARTNER';
   sponsorId?: number | null;
   sponsorIds: number[];
+  bitSponsorIds: number[];
   locationId?: number | null;
+  locationIds: number[];
+  allLocations: boolean;
+  billingType: 'BILLING_SPONSOR' | 'BIT_SPONSOR';
+  billingSponsorId?: number | null;
+  memberVisibility: boolean;
+  offerVisibility: 'ON_OFFER_LAUNCH' | 'ON_ACTIVATION' | 'HIDDEN';
+  maxRewardLimitPoints?: number | null;
+  requiresAcceptance: boolean;
+  targetAccount: 'REDEMPTION' | 'RECOGNITION' | 'BOTH';
+  fulfillmentType?: string | null;
+  kpis: OfferKpiTarget[];
   offerType: 'MULTIPLIER' | 'BONUS_POINTS' | 'HYBRID';
   multiplier: number;
   bonusPoints: number;
@@ -189,6 +207,7 @@ export interface OfferDto {
   totalClaimsCount: number;
   isMto: boolean;
   isFeatured: boolean;
+  targetMemberIds: number[];
   pointsRequired: number;
   benefitCode?: string | null;
   targetTierId?: number | null;
@@ -200,7 +219,64 @@ export interface OfferDto {
   isActive: boolean;
 }
 
-export type OfferCreateRequest = Omit<OfferDto, 'id'>;
+export type OfferCreateRequest = Omit<OfferDto, 'id' | 'totalClaimsCount'>;
+
+export interface TierDto {
+  id: number;
+  tenantId: number;
+  programId: number;
+  name: string;
+  rank: number;
+  thresholdPoints: number;
+  multiplier: number;
+}
+
+export interface OfferSimulationRequest {
+  category: OfferDto['category'];
+  scope: OfferDto['scope'];
+  sponsorId?: number | null;
+  bitSponsorIds: number[];
+  allLocations: boolean;
+  locationIds: number[];
+  multiplier: number;
+  bonusPoints: number;
+  pointsRequired: number;
+  discountType?: OfferDto['discountType'];
+  discountValue?: number | null;
+  minSpend: number;
+  minTierRank: number;
+  eligibleDays?: string | null;
+  maxRewardLimitPoints?: number | null;
+  isMto: boolean;
+  targetMemberIds: number[];
+  startDate: string;
+  endDate: string;
+  sampleAmount: number;
+  sampleTierRank: number;
+  sampleSponsorId?: number | null;
+  sampleLocationId?: number | null;
+  sampleMemberId?: number | null;
+  sampleOccurredAt: string;
+  basePointsPerUnit: number;
+}
+
+export interface OfferSimulationCheck {
+  label: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface OfferSimulationResponse {
+  qualifies: boolean;
+  checks: OfferSimulationCheck[];
+  basePoints: number;
+  bonusPoints: number;
+  totalPoints: number;
+  pointsBurned: number;
+  discountAmount: number;
+  netPayableAmount: number;
+  summary: string;
+}
 
 export interface OfferImportSummary {
   imported: number;
@@ -687,6 +763,17 @@ export class SpringBootApiClient {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  }
+
+  async simulateOffer(payload: OfferSimulationRequest): Promise<OfferSimulationResponse> {
+    return apiFetch<OfferSimulationResponse>('/api/offers/simulate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getTiers(tenantId: number, programId: number): Promise<TierDto[]> {
+    return apiFetch<TierDto[]>(`/api/tiers?tenantId=${encodeURIComponent(tenantId)}&programId=${encodeURIComponent(programId)}`, { method: 'GET' });
   }
 
   async updateOfferStatus(offerId: number, status: OfferDto['status']): Promise<OfferDto> {
