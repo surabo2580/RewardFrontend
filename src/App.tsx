@@ -613,6 +613,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
     if (activeTab === 'repos') return <RepoArchitectureGuide />;
     if (activeTab === 'offers') return <OfferManager />;
     if (activeTab === 'members') return <MemberManager />;
+    if (activeTab === 'imports') return <MemberManager />;
     if (activeTab === 'sponsors') {
       return <SponsorManager />;
     }

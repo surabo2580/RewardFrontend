@@ -138,6 +138,21 @@ export interface MemberDto {
   createdAt?: string;
 }
 
+export interface MemberImportJobDto {
+  id: number;
+  status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  fileName: string;
+  totalRecords: number;
+  processedRecords: number;
+  importedRecords: number;
+  duplicateRecords: number;
+  failedRecords: number;
+  errorSummary?: string | null;
+  createdAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
 export interface EventRequest {
   tenantId: number;
   programId: number;
@@ -820,6 +835,27 @@ export class SpringBootApiClient {
       return apiFetch<MemberDto[]>('/api/members', { method: 'GET' });
     }
     return apiFetch<MemberDto[]>(`/api/members?tenantId=${encodeURIComponent(tenantId)}`, { method: 'GET' });
+  }
+
+  async startMemberImport(file: File): Promise<MemberImportJobDto> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${apiBaseUrl}/api/members/imports`, {
+      method: 'POST',
+      headers: getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : { 'X-API-Key': getStoredApiKey() },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+    return data as MemberImportJobDto;
+  }
+
+  async getMemberImportJobs(): Promise<MemberImportJobDto[]> {
+    return apiFetch<MemberImportJobDto[]>('/api/members/imports', { method: 'GET' });
+  }
+
+  async getMemberImportJob(jobId: number): Promise<MemberImportJobDto> {
+    return apiFetch<MemberImportJobDto>(`/api/members/imports/${encodeURIComponent(jobId)}`, { method: 'GET' });
   }
 
   async getUsers(tenantId?: string): Promise<Array<{ id: string; name: string; createdAt: number }>> {

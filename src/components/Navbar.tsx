@@ -12,7 +12,8 @@ import {
   Sparkles,
   ShieldCheck,
   Cpu,
-  GitBranch
+  GitBranch,
+  FileUp
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -40,6 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'transactions', label: 'Transactions', icon: History, count: null },
     { id: 'api', label: 'REST API & Sandbox', icon: Terminal, count: null },
     { id: 'entities', label: 'Businesses & Users', icon: Building2, count: null },
+    { id: 'imports', label: 'Member Imports', icon: FileUp, count: null },
     { id: 'kotlin', label: 'Kotlin Source', icon: Cpu, count: null },
     { id: 'repos', label: '2-Repo Architecture', icon: GitBranch, count: null },
   ];

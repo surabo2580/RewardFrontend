@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useReward } from '../context/RewardContext';
 import { api, MemberDto } from '../api/client';
 import { AlertCircle, CalendarDays, Mail, Search, UserRound, Users } from 'lucide-react';
+import { MemberBatchImport } from './MemberBatchImport';
 
 type SearchField = 'memberId' | 'email';
 
@@ -70,6 +71,8 @@ export const MemberManager: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <MemberBatchImport enabled={Boolean(selectedBusinessId)} onCompleted={() => undefined} />
 
       <section className="border border-slate-800 bg-slate-900 rounded-lg p-5">
         <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)_auto] gap-3 items-end">
