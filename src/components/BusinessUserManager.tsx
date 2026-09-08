@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useReward } from '../context/RewardContext';
 import { api, BranchDto, ProgramDto } from '../api/client';
 import { useRewardStore } from '../store/useRewardStore';
-import { Building2, Users as UsersIcon, GitBranch, KeyRound, Hotel, Layers3 } from 'lucide-react';
+import { Building2, Users as UsersIcon, GitBranch, KeyRound, Hotel, Layers3, Copy, Check } from 'lucide-react';
 
 export const BusinessUserManager: React.FC = () => {
   const {
@@ -24,6 +24,7 @@ export const BusinessUserManager: React.FC = () => {
   const [redemptionRate, setRedemptionRate] = useState('1');
   const [provisionError, setProvisionError] = useState('');
   const [bootstrapCredentials, setBootstrapCredentials] = useState<{ email: string; username: string; temporaryPassword: string } | null>(null);
+  const [copiedApiKey, setCopiedApiKey] = useState(false);
 
   const [programs, setPrograms] = useState<ProgramDto[]>([]);
   const [branches, setBranches] = useState<BranchDto[]>([]);
@@ -48,6 +49,13 @@ export const BusinessUserManager: React.FC = () => {
 
   const selectedBranchCode = localStorage.getItem('branchCode') || '';
   const tenantApiKey = localStorage.getItem('tenantApiKey') || '';
+
+  const handleCopyApiKey = async () => {
+    if (!tenantApiKey) return;
+    await navigator.clipboard.writeText(tenantApiKey);
+    setCopiedApiKey(true);
+    window.setTimeout(() => setCopiedApiKey(false), 2000);
+  };
 
   useEffect(() => {
     if (!selectedBusinessId) {
@@ -195,10 +203,23 @@ export const BusinessUserManager: React.FC = () => {
         <p className="text-sm text-slate-400 mt-1">
           Provision a tenant, then manage tenant program, branches, and shared members.
         </p>
-        <div className="mt-3 text-xs text-slate-300 bg-slate-950 border border-slate-800 rounded-lg p-3 flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-emerald-400" />
-          <span>API key loaded:</span>
-          <span className="font-mono text-emerald-300">{tenantApiKey ? `${tenantApiKey.slice(0, 8)}...` : 'Not set'}</span>
+        <div className="mt-3 text-xs text-slate-300 bg-slate-950 border border-slate-800 rounded-lg p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <KeyRound className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="shrink-0">X-API-Key:</span>
+              <span className="font-mono text-emerald-300 break-all">{tenantApiKey || 'Not set'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyApiKey}
+              disabled={!tenantApiKey}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-slate-200 hover:border-emerald-500/60 hover:text-emerald-200 disabled:opacity-50"
+            >
+              {copiedApiKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedApiKey ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
         </div>
         {bootstrapCredentials && (
           <div className="mt-3 text-xs text-cyan-200 bg-cyan-950/30 border border-cyan-700/40 rounded-lg p-3">

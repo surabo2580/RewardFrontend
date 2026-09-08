@@ -413,6 +413,8 @@ export interface SelfServeRegisterResponse {
   tenant: TenantDto;
   program: ProgramDto;
   hostSponsor?: SponsorDto;
+  apiKey: string;
+  apiKeyHeader: string;
   onboardingType: 'SELF_SERVE';
 }
 
@@ -538,6 +540,7 @@ export class SpringBootApiClient {
     );
 
     persistSessionToken(response);
+    localStorage.setItem('tenantApiKey', response.apiKey);
 
     return response;
   }
@@ -594,6 +597,7 @@ export class SpringBootApiClient {
     );
 
     persistSessionToken(response);
+    localStorage.setItem('tenantApiKey', response.apiKey);
 
     return response;
   }
