@@ -15,6 +15,9 @@ import { RepoArchitectureGuide } from './components/RepoArchitectureGuide';
 import { SponsorManager } from './components/SponsorManager';
 import { PartnerMembershipManager } from './components/PartnerMembershipManager';
 import { ReconciliationManager } from './components/ReconciliationManager';
+import { MemberSidebar } from './components/member360/MemberSidebar';
+import { MemberWorkspace, useMember360 } from './components/member360/MemberWorkspace';
+import { MemberModule } from './components/member360/ui';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity,
@@ -585,8 +588,31 @@ const LoginScreen: React.FC<{ onLoggedIn: (user: SystemUserProfile) => void }> =
 };
 
 const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promise<void> }> = ({ authUser, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
+  const [activeTab, setActiveTabState] = useState<AppTab>('dashboard');
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  // When set, the sidebar and main area switch into the member-scoped 360 workspace.
+  const [activeMemberId, setActiveMemberId] = useState<number | null>(null);
+  const [memberModule, setMemberModule] = useState<MemberModule>('details');
+  const [memberDialog, setMemberDialog] = useState<'adjust' | 'tier' | null>(null);
+  const member360 = useMember360(activeMemberId);
+
+  const openMember = (memberId: number) => {
+    setActiveMemberId(memberId);
+    setMemberModule('details');
+    setMemberDialog(null);
+  };
+
+  const exitMember = () => {
+    setActiveMemberId(null);
+    setMemberDialog(null);
+    setActiveTabState('members');
+  };
+
+  const setActiveTab = (tab: AppTab) => {
+    setActiveMemberId(null);
+    setMemberDialog(null);
+    setActiveTabState(tab);
+  };
 
   const {
     businesses,
@@ -601,7 +627,23 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
 
   const wallet = getWallet(selectedUserId, selectedBusinessId);
 
+  useEffect(() => {
+    setActiveMemberId(null);
+  }, [selectedBusinessId]);
+
   const renderMainContent = () => {
+    if (activeMemberId) {
+      return (
+        <MemberWorkspace
+          member360={member360}
+          activeModule={memberModule}
+          setActiveModule={setMemberModule}
+          dialog={memberDialog}
+          setDialog={setMemberDialog}
+          onOpenMember={openMember}
+        />
+      );
+    }
     if (activeTab === 'dashboard') return <DashboardHome setActiveTab={setActiveTab} />;
     if (activeTab === 'events') return <EventDispatcher />;
     if (activeTab === 'rules') return <RuleManager />;
@@ -612,8 +654,8 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
     if (activeTab === 'kotlin') return <KotlinSourceViewer />;
     if (activeTab === 'repos') return <RepoArchitectureGuide />;
     if (activeTab === 'offers') return <OfferManager />;
-    if (activeTab === 'members') return <MemberManager />;
-    if (activeTab === 'imports') return <MemberManager />;
+    if (activeTab === 'members') return <MemberManager onOpenMember={openMember} />;
+    if (activeTab === 'imports') return <MemberManager onOpenMember={openMember} />;
     if (activeTab === 'sponsors') {
       return <SponsorManager />;
     }
@@ -650,9 +692,24 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
           <div className="text-xs text-slate-500">{authUser.email}</div>
         </div>
 
+        {activeMemberId ? (
+          <div className="mt-3 flex min-h-0 flex-1 flex-col">
+            <MemberSidebar
+              data={member360.data}
+              loading={member360.loading}
+              activeModule={memberModule}
+              onSelect={setMemberModule}
+              onExit={exitMember}
+              onQuickAdjust={() => setMemberDialog('adjust')}
+              onChangeTier={() => setMemberDialog('tier')}
+            />
+          </div>
+        ) : (
         <nav className="mt-2 space-y-1 overflow-auto" aria-label="Benevo workspace navigation">
           <SidebarSection label="Workspace" />
           <SidebarItem icon={Grid2x2} label="Dashboard" tab="dashboard" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={Users} label="Members" tab="members" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={Megaphone} label="Offers" tab="offers" activeTab={activeTab} setActiveTab={setActiveTab} />
 
           <SidebarSection label="Network" />
           <SidebarItem icon={Network} label="Partner Network" tab="sponsors" activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -670,6 +727,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
           <SidebarItem icon={Zap} label="Kotlin Source" tab="kotlin" activeTab={activeTab} setActiveTab={setActiveTab} />
           <SidebarItem icon={GitBranch} label="Architecture" tab="repos" activeTab={activeTab} setActiveTab={setActiveTab} />
         </nav>
+        )}
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -764,7 +822,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
         <main className="flex-1 overflow-auto p-3 sm:p-5 lg:p-6">
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeTab}
+              key={activeMemberId ? `member-${activeMemberId}-${memberModule}` : activeTab}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}

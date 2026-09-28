@@ -138,6 +138,264 @@ export interface MemberDto {
   createdAt?: string;
 }
 
+export interface MemberSearchResult {
+  id: number;
+  externalUserId: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  dateOfBirth: string | null;
+  tier: string;
+  status: string;
+  accountBalance: number;
+}
+
+export interface MemberProfile {
+  id: number;
+  tenantId: number;
+  externalUserId: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  alternatePhone: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  nationality: string | null;
+  preferredLanguage: string | null;
+  enrollingSponsorId: number | null;
+  enrollingSponsorName: string | null;
+  tier: string;
+  status: string;
+  createdAt: string;
+}
+
+export type MemberProfileUpdate = Partial<Omit<MemberProfile, 'id' | 'tenantId' | 'externalUserId' | 'enrollingSponsorName' | 'tier' | 'createdAt'>>;
+
+export interface TierSummary {
+  tierName: string;
+  tierRank: number;
+  multiplier: number;
+  thresholdPoints: number;
+  nextTierName: string | null;
+  nextTierThreshold: number | null;
+  pointsToNextTier: number | null;
+  progressPercent: number;
+}
+
+export interface MemberBalances {
+  spendablePoints: number;
+  pendingPoints: number;
+  redeemedPoints: number;
+  lifetimeEarnedPoints: number;
+  recognitionPoints: number;
+  lifetimeRecognitionPoints: number;
+  pointsExpiringSoon: number;
+  expiryWarningDays: number;
+  nextExpiryDate: string | null;
+}
+
+export interface ServiceTicket {
+  id: number;
+  memberId: number;
+  ticketReference: string;
+  category: string;
+  priority: string;
+  status: string;
+  subject: string;
+  description: string | null;
+  isHotnote: boolean;
+  createdByUserId: number | null;
+  pointsAdjusted: number;
+  resolutionNotes: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface Member360 {
+  profile: MemberProfile;
+  programId: number | null;
+  programName: string | null;
+  currency: string | null;
+  tier: TierSummary;
+  balances: MemberBalances;
+  counts: {
+    transactions: number;
+    activeVouchers: number;
+    eligibleOffers: number;
+    bookings: number;
+    openTickets: number;
+    linkedMembers: number;
+    activeCards: number;
+  };
+  hotnotes: ServiceTicket[];
+}
+
+export interface PointLot {
+  id: number;
+  accountType: string;
+  entryType: string;
+  points: number;
+  remainingPoints: number;
+  description: string | null;
+  createdAt: string;
+  expiresAt: string | null;
+  expiredAt: string | null;
+  lotStatus: 'ACTIVE' | 'EXPIRED' | 'CONSUMED' | 'DEBIT';
+}
+
+export interface MemberTransaction {
+  id: number;
+  transactionType: string;
+  eventType: string;
+  status: string;
+  amount: number;
+  points: number;
+  recognitionPoints: number;
+  offerBonusPoints: number;
+  offerMultiplier: number | null;
+  discountAmount: number | null;
+  sponsorId: number | null;
+  sponsorName: string | null;
+  locationId: number | null;
+  referenceId: string | null;
+  channel: string;
+  policyScope: string | null;
+  originalTransactionId: number | null;
+  createdAt: string;
+}
+
+export interface MemberVoucher {
+  id: number;
+  voucherCode: string;
+  offerId: number;
+  offerName: string | null;
+  offerCategory: string | null;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  referenceId: string | null;
+  status: 'ACTIVE' | 'EXPIRED';
+}
+
+export interface MemberOffer {
+  id: number;
+  offerCode: string;
+  name: string;
+  description: string | null;
+  category: string;
+  offerType: string;
+  status: string;
+  isMto: boolean;
+  isTargeted: boolean;
+  multiplier: number;
+  bonusPoints: number;
+  pointsRequired: number;
+  minTierRank: number;
+  maxUsesPerMember: number | null;
+  usesByMember: number;
+  startDate: string;
+  endDate: string;
+  eligible: boolean;
+  ineligibleReason: string | null;
+}
+
+export interface MemberLink {
+  id: number;
+  linkSource: 'HOUSEHOLD' | 'PARTNER';
+  relationType: string;
+  canSharePoints: boolean;
+  direction: string;
+  memberId: number | null;
+  externalUserId: string | null;
+  email: string | null;
+  tier: string | null;
+  sponsorId: number | null;
+  sponsorName: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface MembershipCard {
+  id: number;
+  cardNumber: string;
+  cardType: string;
+  status: string;
+  barcodePayload: string;
+  issuedAt: string;
+  expiresAt: string | null;
+}
+
+export interface MemberBooking {
+  id: number;
+  bookingReference: string;
+  sponsorId: number | null;
+  sponsorName: string | null;
+  locationId: number | null;
+  bookingType: string;
+  status: string;
+  checkInDate: string | null;
+  checkOutDate: string | null;
+  nights: number | null;
+  roomType: string | null;
+  roomNumber: string | null;
+  totalAmount: number;
+  currency: string;
+  pointsEarned: number;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface MemberBookingCreate {
+  bookingReference: string;
+  sponsorId?: number | null;
+  bookingType: string;
+  status: string;
+  checkInDate?: string | null;
+  checkOutDate?: string | null;
+  roomType?: string | null;
+  roomNumber?: string | null;
+  totalAmount: number;
+  currency?: string | null;
+  notes?: string | null;
+}
+
+export interface HotnoteDto {
+  ticket: ServiceTicket;
+  memberExternalUserId: string | null;
+  memberEmail: string | null;
+}
+
+export interface MemberKpis {
+  lifetimeSpend: number;
+  earnTransactions: number;
+  averageOrderValue: number;
+  lifetimePointsEarned: number;
+  lifetimePointsRedeemed: number;
+  lifetimePointsExpired: number;
+  redemptionRatePercent: number;
+  visitsLast90Days: number;
+  daysSinceLastActivity: number | null;
+  firstActivityAt: string | null;
+  lastActivityAt: string | null;
+  totalBookings: number;
+  completedStays: number;
+  totalNights: number;
+  bookingRevenue: number;
+  offersRedeemed: number;
+  openTickets: number;
+  tier: TierSummary;
+  monthly: Array<{ month: string; spend: number; pointsEarned: number; pointsRedeemed: number; transactions: number }>;
+}
+
+export interface PointAdjustmentResult {
+  transactionId: number;
+  direction: 'CREDIT' | 'DEBIT';
+  points: number;
+  newBalance: number;
+  ticket: ServiceTicket;
+}
+
 export interface MemberImportJobDto {
   id: number;
   status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
@@ -984,6 +1242,100 @@ export class SpringBootApiClient {
     return apiFetch<any[]>(`/api/wallet-history/${encodeURIComponent(tenantId)}/${encodeURIComponent(memberId)}`, {
       method: 'GET',
     });
+  }
+
+  // ---------- Member 360 workspace ----------
+
+  async searchMembers(query: string): Promise<MemberSearchResult[]> {
+    return apiFetch<MemberSearchResult[]>(`/api/members/search?q=${encodeURIComponent(query)}`, { method: 'GET' });
+  }
+
+  async getHotnotes(): Promise<HotnoteDto[]> {
+    return apiFetch<HotnoteDto[]>('/api/members/hotnotes', { method: 'GET' });
+  }
+
+  async getMember360(memberId: number): Promise<Member360> {
+    return apiFetch<Member360>(`/api/members/${memberId}/360`, { method: 'GET' });
+  }
+
+  async updateMemberProfile(memberId: number, payload: MemberProfileUpdate): Promise<MemberProfile> {
+    return apiFetch<MemberProfile>(`/api/members/${memberId}/profile`, { method: 'PUT', body: JSON.stringify(payload) });
+  }
+
+  async getMemberLinks(memberId: number): Promise<MemberLink[]> {
+    return apiFetch<MemberLink[]>(`/api/members/${memberId}/links`, { method: 'GET' });
+  }
+
+  async createMemberLink(memberId: number, payload: { linkedMemberIdentifier: string; relationType: string; canSharePoints: boolean }): Promise<MemberLink[]> {
+    return apiFetch<MemberLink[]>(`/api/members/${memberId}/links`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  async deleteMemberLink(memberId: number, linkId: number): Promise<void> {
+    await apiFetch<void>(`/api/members/${memberId}/links/${linkId}`, { method: 'DELETE' });
+  }
+
+  async getMemberCards(memberId: number): Promise<MembershipCard[]> {
+    return apiFetch<MembershipCard[]>(`/api/members/${memberId}/cards`, { method: 'GET' });
+  }
+
+  async issueMemberCard(memberId: number, payload: { cardType: string; validityMonths?: number | null; replaceExisting: boolean }): Promise<MembershipCard> {
+    return apiFetch<MembershipCard>(`/api/members/${memberId}/cards`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  async updateMemberCardStatus(memberId: number, cardId: number, status: string): Promise<MembershipCard> {
+    return apiFetch<MembershipCard>(`/api/members/${memberId}/cards/${cardId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  }
+
+  async getMemberBalance(memberId: number): Promise<{ balances: MemberBalances; lots: PointLot[] }> {
+    return apiFetch<{ balances: MemberBalances; lots: PointLot[] }>(`/api/members/${memberId}/balance`, { method: 'GET' });
+  }
+
+  async getMemberTransactions(memberId: number): Promise<MemberTransaction[]> {
+    return apiFetch<MemberTransaction[]>(`/api/members/${memberId}/transactions`, { method: 'GET' });
+  }
+
+  async getMemberVouchers(memberId: number): Promise<MemberVoucher[]> {
+    return apiFetch<MemberVoucher[]>(`/api/members/${memberId}/vouchers`, { method: 'GET' });
+  }
+
+  async getMemberOffers(memberId: number): Promise<MemberOffer[]> {
+    return apiFetch<MemberOffer[]>(`/api/members/${memberId}/offers`, { method: 'GET' });
+  }
+
+  async getMemberBookings(memberId: number): Promise<MemberBooking[]> {
+    return apiFetch<MemberBooking[]>(`/api/members/${memberId}/bookings`, { method: 'GET' });
+  }
+
+  async createMemberBooking(memberId: number, payload: MemberBookingCreate): Promise<MemberBooking> {
+    return apiFetch<MemberBooking>(`/api/members/${memberId}/bookings`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  async updateMemberBookingStatus(memberId: number, bookingId: number, status: string): Promise<MemberBooking> {
+    return apiFetch<MemberBooking>(`/api/members/${memberId}/bookings/${bookingId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  }
+
+  async getMemberTickets(memberId: number): Promise<ServiceTicket[]> {
+    return apiFetch<ServiceTicket[]>(`/api/members/${memberId}/services`, { method: 'GET' });
+  }
+
+  async createMemberTicket(memberId: number, payload: { subject: string; category: string; priority: string; description?: string; isHotnote: boolean }): Promise<ServiceTicket> {
+    return apiFetch<ServiceTicket>(`/api/members/${memberId}/services`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  async updateMemberTicket(memberId: number, ticketId: number, payload: { status?: string; priority?: string; resolutionNotes?: string; isHotnote?: boolean }): Promise<ServiceTicket> {
+    return apiFetch<ServiceTicket>(`/api/members/${memberId}/services/${ticketId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  }
+
+  async adjustMemberPoints(memberId: number, payload: { direction: 'CREDIT' | 'DEBIT'; points: number; reason: string; category: string }): Promise<PointAdjustmentResult> {
+    return apiFetch<PointAdjustmentResult>(`/api/members/${memberId}/adjustments`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  async overrideMemberTier(memberId: number, payload: { targetTier: string; reason: string }): Promise<Member360> {
+    return apiFetch<Member360>(`/api/members/${memberId}/tier-override`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  async getMemberKpis(memberId: number): Promise<MemberKpis> {
+    return apiFetch<MemberKpis>(`/api/members/${memberId}/kpis`, { method: 'GET' });
   }
 }
 
