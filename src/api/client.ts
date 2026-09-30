@@ -142,6 +142,8 @@ export interface BitDto {
   bitTypeLabel: string;
   bitCategory: string;
   status: string;
+  errorCode: string | null;
+  errorMessage: string | null;
   memberId: number;
   programId: number | null;
   bitSponsorId: number | null;
@@ -151,6 +153,7 @@ export interface BitDto {
   locationId: number | null;
   branchId: number | null;
   channel: string;
+  bitSource: string | null;
   grossAmount: number;
   discountAmount: number;
   netAmount: number;
@@ -167,8 +170,29 @@ export interface BitDto {
   createdAt: string;
 }
 
+export interface BitListRowDto {
+  bitId: number;
+  bitReference: string;
+  interactionDate: string;
+  sponsorName: string | null;
+  memberCode: string;
+  bitCategory: string;
+  bitType: string;
+  bitTypeLabel: string;
+  offerName: string | null;
+  pointsDelta: number | null;
+  redemptionPoints: number;
+  recognitionPoints: number;
+  rewardsEarned: number;
+  rewardsAvailed: number | null;
+  status: string;
+  errorCode: string | null;
+  errorMessage: string | null;
+  source: string;
+}
+
 export interface BitPageDto {
-  items: BitDto[];
+  items: BitListRowDto[];
   page: number;
   size: number;
   totalItems: number;
@@ -188,6 +212,8 @@ export interface BitDetailDto {
   bit: BitDto;
   ledger: BitLedgerEntryDto[];
   reversals: BitDto[];
+  offers: Array<{ id: number; offerCode: string; name: string; category: string }>;
+  vouchers: Array<{ id: number; offerId: number; voucherCode: string; status: string; expiresAt: string | null }>;
 }
 
 export interface MemberDto {
@@ -1027,10 +1053,13 @@ export class SpringBootApiClient {
 
   async getBits(filters: {
     memberId?: number;
-    bitType?: string;
-    category?: string;
+    type?: string | string[];
+    bitType?: string | string[];
+    category?: string | string[];
     sponsorId?: number;
-    status?: string;
+    status?: string | string[];
+    source?: string | string[];
+    pointsAction?: string | string[];
     from?: string;
     to?: string;
     page?: number;
@@ -1038,7 +1067,7 @@ export class SpringBootApiClient {
   }): Promise<BitPageDto> {
     const query = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') query.set(key, String(value));
+      if (value !== undefined && value !== '') query.set(key, Array.isArray(value) ? value.join(',') : String(value));
     });
     return apiFetch<BitPageDto>(`/api/bits?${query.toString()}`, { method: 'GET' });
   }

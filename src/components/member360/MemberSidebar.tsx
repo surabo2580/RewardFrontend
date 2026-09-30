@@ -8,6 +8,7 @@ import {
   Headphones,
   Receipt,
   RefreshCw,
+  Radar,
   Tag,
   UserRound,
   Users,
@@ -27,6 +28,7 @@ export const MEMBER_MODULES: Array<{ id: MemberModule; label: string; icon: Reac
   { id: 'offers', label: 'Offers', icon: Tag, count: (d) => d.counts.eligibleOffers },
   { id: 'bookings', label: 'Bookings', icon: CalendarDays, count: (d) => d.counts.bookings },
   { id: 'services', label: 'Services', icon: Headphones, count: (d) => d.counts.openTickets },
+  { id: 'activity', label: 'Activity', icon: Radar },
   { id: 'kpis', label: 'KPIs', icon: BarChart3 },
 ];
 

@@ -11,6 +11,7 @@ export type MemberModule =
   | 'offers'
   | 'bookings'
   | 'services'
+  | 'activity'
   | 'kpis';
 
 export function useAsync<T>(loader: () => Promise<T>, deps: React.DependencyList) {

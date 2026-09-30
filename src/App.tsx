@@ -717,7 +717,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
           <SidebarItem icon={Users} label="Partner Links" tab="partnerMemberships" activeTab={activeTab} setActiveTab={setActiveTab} />
 
           <SidebarSection label="Operations" />
-          <SidebarItem icon={Radar} label="Activity Events" tab="bits" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarItem icon={Radar} label="BITs" tab="bits" activeTab={activeTab} setActiveTab={setActiveTab} />
           <SidebarItem icon={Send} label="Process Transaction" tab="events" activeTab={activeTab} setActiveTab={setActiveTab} />
           <SidebarItem icon={History} label="Transaction History" tab="transactions" activeTab={activeTab} setActiveTab={setActiveTab} />
           <SidebarItem icon={Layers3} label="Settlements" tab="reconciliation" activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -820,6 +820,17 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
           </div>
         </header>
 
+        <nav className="border-b border-slate-800 bg-slate-900 px-3 py-2 lg:hidden" aria-label="Mobile workspace navigation">
+          <button
+            type="button"
+            onClick={() => setActiveTab('bits')}
+            aria-current={activeTab === 'bits' && !activeMemberId ? 'page' : undefined}
+            className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${activeTab === 'bits' && !activeMemberId ? 'bg-cyan-500/15 text-cyan-200' : 'text-slate-300 hover:bg-slate-800'}`}
+          >
+            <Radar className="h-4 w-4" />BITs
+          </button>
+        </nav>
+
         <main className="flex-1 overflow-auto p-3 sm:p-5 lg:p-6">
           <AnimatePresence mode="wait">
             <motion.div
@@ -884,6 +895,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
                     <button type="button" onClick={() => { setActiveTab('rules'); setQuickMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded hover:bg-slate-700 text-slate-200 inline-flex items-center justify-between">Enrollment Setup <ArrowRight className="w-3.5 h-3.5 text-slate-500" /></button>
                     <button type="button" onClick={() => { setActiveTab('wallet'); setQuickMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded hover:bg-slate-700 text-slate-200 inline-flex items-center justify-between">Access Management <ArrowRight className="w-3.5 h-3.5 text-slate-500" /></button>
                     <button type="button" onClick={() => { setActiveTab('api'); setQuickMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded hover:bg-slate-700 text-slate-200 inline-flex items-center justify-between">Benevo Connect <ArrowRight className="w-3.5 h-3.5 text-slate-500" /></button>
+                    <button type="button" onClick={() => { setActiveTab('bits'); setQuickMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded hover:bg-slate-700 text-slate-200 inline-flex items-center justify-between"><span className="inline-flex items-center gap-2"><Radar className="h-4 w-4 text-cyan-300" />BITs</span><ArrowRight className="w-3.5 h-3.5 text-slate-500" /></button>
                     <button type="button" onClick={() => { setActiveTab('transactions'); setQuickMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded hover:bg-slate-700 text-slate-200 inline-flex items-center justify-between">Audit History <ArrowRight className="w-3.5 h-3.5 text-slate-500" /></button>
                     <button type="button" onClick={() => { setActiveTab('kotlin'); setQuickMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded hover:bg-slate-700 text-slate-200 inline-flex items-center justify-between">Admin <ArrowRight className="w-3.5 h-3.5 text-slate-500" /></button>
                   </div>

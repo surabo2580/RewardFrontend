@@ -5,6 +5,7 @@ import { displayName, MEMBER_MODULES } from './MemberSidebar';
 import { BalanceTab, OffersTab, TransactionsTab, VouchersTab } from './WalletTabs';
 import { BookingsTab, KpisTab, ServicesTab } from './ServiceTabs';
 import { LinkedMembersTab, MemberDetailsTab, MembershipCardsTab } from './ProfileTabs';
+import { BitsExplorer } from '../BitsExplorer';
 import { Badge, ErrorText, fmtNum, inputClass, LoadingState, MemberModule, primaryButton, secondaryButton, useAsync } from './ui';
 
 export function useMember360(memberId: number | null) {
@@ -159,6 +160,7 @@ export const MemberWorkspace: React.FC<{
       case 'offers': return <OffersTab key={data.tier.tierName} memberId={memberId} data={data} />;
       case 'bookings': return <BookingsTab memberId={memberId} currency={data.currency} onChanged={refresh} />;
       case 'services': return <ServicesTab memberId={memberId} onChanged={refresh} onAdjust={() => setDialog('adjust')} refreshKey={servicesRefreshKey} />;
+      case 'activity': return <BitsExplorer memberId={memberId} />;
       case 'kpis': return <KpisTab key={data.counts.transactions} memberId={memberId} data={data} />;
     }
   };
