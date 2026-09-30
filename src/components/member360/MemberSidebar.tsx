@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CreditCard,
   Gift,
+  Gauge,
   Headphones,
   Receipt,
   RefreshCw,
@@ -19,6 +20,7 @@ import { Member360 } from '../../api/client';
 import { Badge, fmtNum, MemberModule } from './ui';
 
 export const MEMBER_MODULES: Array<{ id: MemberModule; label: string; icon: React.ComponentType<{ className?: string }>; count?: (d: Member360) => number }> = [
+  { id: 'central', label: 'Member Central', icon: Gauge },
   { id: 'details', label: 'Member Details', icon: UserRound },
   { id: 'linked', label: 'Linked Members', icon: Users, count: (d) => d.counts.linkedMembers },
   { id: 'cards', label: 'Membership Cards', icon: CreditCard, count: (d) => d.counts.activeCards },

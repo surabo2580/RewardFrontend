@@ -6,6 +6,7 @@ import { BalanceTab, OffersTab, TransactionsTab, VouchersTab } from './WalletTab
 import { BookingsTab, KpisTab, ServicesTab } from './ServiceTabs';
 import { LinkedMembersTab, MemberDetailsTab, MembershipCardsTab } from './ProfileTabs';
 import { BitsExplorer } from '../BitsExplorer';
+import { MemberCentral } from './MemberCentral';
 import { Badge, ErrorText, fmtNum, inputClass, LoadingState, MemberModule, primaryButton, secondaryButton, useAsync } from './ui';
 
 export function useMember360(memberId: number | null) {
@@ -151,6 +152,7 @@ export const MemberWorkspace: React.FC<{
 
   const renderModule = () => {
     switch (activeModule) {
+      case 'central': return <MemberCentral memberId={memberId} />;
       case 'details': return <MemberDetailsTab data={data} onUpdated={refresh} />;
       case 'linked': return <LinkedMembersTab memberId={memberId} onChanged={refresh} onOpenMember={onOpenMember} />;
       case 'cards': return <MembershipCardsTab memberId={memberId} tierName={data.tier.tierName} onChanged={refresh} />;

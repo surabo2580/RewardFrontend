@@ -319,6 +319,29 @@ export interface Member360 {
   hotnotes: ServiceTicket[];
 }
 
+export interface MemberCentral {
+  header: MemberProfile;
+  daysSinceLastBit: number | null;
+  firstBitAt: string | null;
+  lastBitAt: string | null;
+  last5Bits: Array<{
+    bitId: number;
+    sponsorName: string | null;
+    bitType: string;
+    bitCategory: string;
+    interactionAt: string;
+    pointsDelta: number | null;
+  }>;
+  bitSpan: Array<{ date: string; bitCount: number; bitTypes: string[] }>;
+  topSponsors: Array<{ sponsorId: number; sponsorName: string; bitCount: number; totalAmount: number; points: number }>;
+  privilegesOverview: {
+    currentTier: string;
+    eligibleCount: number;
+    claimedCount: number;
+    eligiblePrivileges: MemberOffer[];
+  };
+}
+
 export interface PointLot {
   id: number;
   accountType: string;
@@ -1380,6 +1403,10 @@ export class SpringBootApiClient {
 
   async getMember360(memberId: number): Promise<Member360> {
     return apiFetch<Member360>(`/api/members/${memberId}/360`, { method: 'GET' });
+  }
+
+  async getMemberCentral(memberId: number): Promise<MemberCentral> {
+    return apiFetch<MemberCentral>(`/api/members/${memberId}/central`, { method: 'GET' });
   }
 
   async updateMemberProfile(memberId: number, payload: MemberProfileUpdate): Promise<MemberProfile> {

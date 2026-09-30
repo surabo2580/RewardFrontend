@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 export type MemberModule =
+  | 'central'
   | 'details'
   | 'linked'
   | 'cards'

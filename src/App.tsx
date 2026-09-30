@@ -593,13 +593,13 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   // When set, the sidebar and main area switch into the member-scoped 360 workspace.
   const [activeMemberId, setActiveMemberId] = useState<number | null>(null);
-  const [memberModule, setMemberModule] = useState<MemberModule>('details');
+  const [memberModule, setMemberModule] = useState<MemberModule>('central');
   const [memberDialog, setMemberDialog] = useState<'adjust' | 'tier' | null>(null);
   const member360 = useMember360(activeMemberId);
 
   const openMember = (memberId: number) => {
     setActiveMemberId(memberId);
-    setMemberModule('details');
+    setMemberModule('central');
     setMemberDialog(null);
   };
 
