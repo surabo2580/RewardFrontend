@@ -1090,7 +1090,14 @@ export class SpringBootApiClient {
   }): Promise<BitPageDto> {
     const query = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') query.set(key, Array.isArray(value) ? value.join(',') : String(value));
+      if (value === undefined || value === '') return;
+      if (Array.isArray(value)) {
+        const joined = value.map(String).map((v) => v.trim()).filter(Boolean).join(',');
+        if (!joined) return;
+        query.set(key, joined);
+        return;
+      }
+      query.set(key, String(value));
     });
     return apiFetch<BitPageDto>(`/api/bits?${query.toString()}`, { method: 'GET' });
   }
