@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Contact, CreditCard, Link2, Pencil, Plus, Trash2, UserRound } from 'lucide-react';
-import { api, Member360, MemberProfileUpdate } from '../../api/client';
+import { Activity, Contact, CreditCard, Link2, Pencil, Plus, Trash2, UserRound } from 'lucide-react';
+import { api, BitDto, Member360, MemberProfileUpdate } from '../../api/client';
 import {
   Badge,
   EmptyState,
@@ -19,6 +19,7 @@ const MEMBER_STATUSES = ['ACTIVE', 'TEMPORARY', 'SUSPENDED', 'BLOCKED', 'CLOSED'
 
 export const MemberDetailsTab: React.FC<{ data: Member360; onUpdated: () => void }> = ({ data, onUpdated }) => {
   const p = data.profile;
+  const activity = useAsync(() => api.getMemberBits(p.id, 20), [p.id]);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<MemberProfileUpdate>({});
   const [saving, setSaving] = useState(false);
@@ -124,6 +125,24 @@ export const MemberDetailsTab: React.FC<{ data: Member360; onUpdated: () => void
           </div>
         </Panel>
       </div>
+      <Panel title="Recent Member Activity" icon={Activity}>
+        {activity.loading ? <LoadingState label="Loading activity…" /> : activity.error ? <ErrorText message={activity.error} /> : !activity.data?.length ? <EmptyState title="No recorded activity" /> : (
+          <div className="divide-y divide-slate-800">
+            {activity.data.map((bit: BitDto) => (
+              <div key={bit.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-slate-100">{bit.bitTypeLabel}</div>
+                  <div className="mt-0.5 truncate text-xs text-slate-400">{bit.description || bit.bitReference}</div>
+                </div>
+                <div className="text-xs text-slate-400">{new Date(bit.interactionAt).toLocaleString()}</div>
+                <div className={`text-xs font-medium ${bit.redemptionPointsDelta < 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
+                  {bit.redemptionPointsDelta > 0 ? '+' : ''}{bit.redemptionPointsDelta.toLocaleString()} pts
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 };

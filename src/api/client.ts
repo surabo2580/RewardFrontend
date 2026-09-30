@@ -129,6 +129,67 @@ export interface ReconciliationRunDto {
   lines: ReconciliationLineDto[];
 }
 
+export interface BitTypeOption {
+  type: string;
+  label: string;
+  category: string;
+}
+
+export interface BitDto {
+  id: number;
+  bitReference: string;
+  bitType: string;
+  bitTypeLabel: string;
+  bitCategory: string;
+  status: string;
+  memberId: number;
+  programId: number | null;
+  bitSponsorId: number | null;
+  bitSponsorName: string | null;
+  billingSponsorId: number | null;
+  billingSponsorName: string | null;
+  locationId: number | null;
+  branchId: number | null;
+  channel: string;
+  grossAmount: number;
+  discountAmount: number;
+  netAmount: number;
+  currency: string | null;
+  redemptionPointsDelta: number;
+  recognitionPointsDelta: number;
+  appliedPolicyId: number | null;
+  appliedOfferIds: number[];
+  originalBitId: number | null;
+  description: string | null;
+  payload: Record<string, unknown> | null;
+  createdByUserId: number | null;
+  interactionAt: string;
+  createdAt: string;
+}
+
+export interface BitPageDto {
+  items: BitDto[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface BitLedgerEntryDto {
+  transactionId: number;
+  transactionType: string;
+  points: number;
+  recognitionPoints: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface BitDetailDto {
+  bit: BitDto;
+  ledger: BitLedgerEntryDto[];
+  reversals: BitDto[];
+}
+
 export interface MemberDto {
   id?: number;
   tenantId: number;
@@ -954,6 +1015,40 @@ export class SpringBootApiClient {
 
   async getPrograms(tenantId: number): Promise<ProgramDto[]> {
     return apiFetch<ProgramDto[]>(`/api/programs/${encodeURIComponent(tenantId)}`, { method: 'GET' });
+  }
+
+  async getBitTypes(): Promise<BitTypeOption[]> {
+    return apiFetch<BitTypeOption[]>('/api/bits/types', { method: 'GET' });
+  }
+
+  async getBitCategories(): Promise<string[]> {
+    return apiFetch<string[]>('/api/bits/categories', { method: 'GET' });
+  }
+
+  async getBits(filters: {
+    memberId?: number;
+    bitType?: string;
+    category?: string;
+    sponsorId?: number;
+    status?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    size?: number;
+  }): Promise<BitPageDto> {
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') query.set(key, String(value));
+    });
+    return apiFetch<BitPageDto>(`/api/bits?${query.toString()}`, { method: 'GET' });
+  }
+
+  async getBitDetail(bitId: number): Promise<BitDetailDto> {
+    return apiFetch<BitDetailDto>(`/api/bits/${bitId}`, { method: 'GET' });
+  }
+
+  async getMemberBits(memberId: number, limit = 100): Promise<BitDto[]> {
+    return apiFetch<BitDto[]>(`/api/members/${memberId}/bits?limit=${limit}`, { method: 'GET' });
   }
 
   async createProgram(payload: ProgramDto): Promise<ProgramDto> {

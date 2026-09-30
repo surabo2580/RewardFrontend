@@ -15,6 +15,7 @@ import { RepoArchitectureGuide } from './components/RepoArchitectureGuide';
 import { SponsorManager } from './components/SponsorManager';
 import { PartnerMembershipManager } from './components/PartnerMembershipManager';
 import { ReconciliationManager } from './components/ReconciliationManager';
+import { BitsExplorer } from './components/BitsExplorer';
 import { MemberSidebar } from './components/member360/MemberSidebar';
 import { MemberWorkspace, useMember360 } from './components/member360/MemberWorkspace';
 import { MemberModule } from './components/member360/ui';
@@ -663,7 +664,7 @@ const AppContent: React.FC<{ authUser: SystemUserProfile; onLogout: () => Promis
       return <PartnerMembershipManager />;
     }
     if (activeTab === 'bits') {
-      return <PlaceholderModule title="BITs" subtitle="Brand interaction trackers and engagement events." />;
+      return <BitsExplorer />;
     }
     if (activeTab === 'reconciliation') {
       return <ReconciliationManager />;
