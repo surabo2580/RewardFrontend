@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useReward } from '../context/RewardContext';
-import { api, ProgramDto, SponsorDto, SponsorLocationDto } from '../api/client';
+import { api, BranchDto, ProgramDto, SponsorDto, SponsorLocationDto } from '../api/client';
 import { Send, CheckCircle2, AlertCircle, Building2, UserPlus, MapPin } from 'lucide-react';
 
 export const EventDispatcher: React.FC = () => {
@@ -10,7 +10,9 @@ export const EventDispatcher: React.FC = () => {
   const [programs, setPrograms] = useState<ProgramDto[]>([]);
   const [sponsors, setSponsors] = useState<SponsorDto[]>([]);
   const [locations, setLocations] = useState<SponsorLocationDto[]>([]);
+  const [branches, setBranches] = useState<BranchDto[]>([]);
   const [programId, setProgramId] = useState<number>(Number(localStorage.getItem('programId') || 0));
+  const [branchCode, setBranchCode] = useState<string>(localStorage.getItem('branchCode') || '');
   const [sponsorId, setSponsorId] = useState<number>(Number(localStorage.getItem('sponsorId') || 0));
   const [locationId, setLocationId] = useState<number>(Number(localStorage.getItem('locationId') || 0));
   const [memberId, setMemberId] = useState<string>(selectedUserId || localStorage.getItem('memberId') || '');
@@ -21,6 +23,11 @@ export const EventDispatcher: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; pointsAwarded: number; message: string } | null>(null);
   const [error, setError] = useState('');
+
+  React.useEffect(() => {
+    if (!tenantId) return;
+    void api.getBranches(tenantId).then(setBranches).catch(() => setBranches([]));
+  }, [tenantId]);
 
   React.useEffect(() => {
     if (!tenantId) return;
@@ -82,12 +89,18 @@ export const EventDispatcher: React.FC = () => {
       } else {
         localStorage.removeItem('locationId');
       }
+      if (branchCode) {
+        localStorage.setItem('branchCode', branchCode);
+      } else {
+        localStorage.removeItem('branchCode');
+      }
 
       const response = await api.postEvent({
         tenantId,
         programId,
         sponsorId,
         locationId: locationId || undefined,
+        branchCode: branchCode || undefined,
         memberId,
         eventType,
         amount: Number(amount),
@@ -157,8 +170,9 @@ export const EventDispatcher: React.FC = () => {
           </label>
 
           <label className="text-xs text-slate-300 space-y-1 block"><span>Program</span><select value={programId} onChange={(e) => setProgramId(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white" required><option value={0}>Select program</option>{programs.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}</select></label>
-          <label className="text-xs text-slate-300 space-y-1 block"><span> Sponsor</span><select value={sponsorId} onChange={(e) => setSponsorId(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white" required><option value={0}>Select sponsor</option>{sponsors.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.sponsorCode})</option>)}</select></label>
-          <label className="text-xs text-slate-300 space-y-1 block"><span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />Location</span><select value={locationId} onChange={(e) => setLocationId(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white"><option value={0}>Sponsor-wide</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.locationName} ({item.locationCode})</option>)}</select></label>
+          <label className="text-xs text-slate-300 space-y-1 block"><span>Program sponsor (billing)</span><select value={sponsorId} onChange={(e) => setSponsorId(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white" required><option value={0}>Select sponsor</option>{sponsors.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.sponsorCode})</option>)}</select></label>
+          <label className="text-xs text-slate-300 space-y-1 block"><span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />Branch / outlet</span><select value={branchCode} onChange={(e) => setBranchCode(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white"><option value="">Default main branch</option>{branches.filter((b) => b.code !== 'DEFAULT_MAIN').map((item) => <option key={item.id} value={item.code}>{item.name} ({item.code}){item.city ? ` · ${item.city}` : ''}</option>)}</select></label>
+          <label className="text-xs text-slate-300 space-y-1 block"><span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />Location</span><select value={locationId} onChange={(e) => setLocationId(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white"><option value={0}>Sponsor default</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.locationName} ({item.locationCode})</option>)}</select></label>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

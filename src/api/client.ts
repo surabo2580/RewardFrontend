@@ -37,6 +37,7 @@ export interface BranchDto {
   id: number;
   tenantId: number;
   parentBranchId: number | null;
+  sponsorId?: number | null;
   code: string;
   name: string;
   city?: string;
